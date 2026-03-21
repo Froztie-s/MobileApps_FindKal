@@ -33,7 +33,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=100)
     username = models.CharField(max_length=50, unique=True, blank=True)
     email = models.EmailField(unique=True)
-    nomortelepon = models.CharField(max_length=20, blank=True)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
     is_email_verified = models.BooleanField(default=False)
 
@@ -78,7 +77,7 @@ class EmailVerification(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.pk:
-            self.expires_at = timezone.now() + timezone.timedelta(minutes=OTP_EXPIRY_MINUTES)
+            self.expires_at = timezone.now() + datetime.timedelta(minutes=OTP_EXPIRY_MINUTES)
         super().save(*args, **kwargs)
 
     @staticmethod
@@ -115,7 +114,7 @@ class PasswordResetToken(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.pk:
-            self.expires_at = timezone.now() + timezone.timedelta(minutes=RESET_TOKEN_EXPIRY_MINUTES)
+            self.expires_at = timezone.now() + datetime.timedelta(minutes=RESET_TOKEN_EXPIRY_MINUTES)
         super().save(*args, **kwargs)
 
     def is_valid(self):
@@ -142,7 +141,7 @@ class PendingEmailVerification(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.pk:
-            self.expires_at = timezone.now() + timezone.timedelta(minutes=OTP_EXPIRY_MINUTES)
+            self.expires_at = timezone.now() + datetime.timedelta(minutes=OTP_EXPIRY_MINUTES)
         super().save(*args, **kwargs)
 
     def is_valid(self):

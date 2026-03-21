@@ -52,7 +52,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
             ),
             const SizedBox(height: 8),
             const Text(
-              "Masukkan username atau nomor telepon",
+              "Masukkan username atau email",
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 14,
@@ -61,7 +61,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
             ),
             const SizedBox(height: 30),
             const Text(
-              "Username atau nomor telepon",
+              "Username atau Email",
               style: TextStyle(
                 fontFamily: 'Arial',
                 fontWeight: FontWeight.w500,

@@ -72,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Username atau nomor telepon",
+                  "Username atau Email",
                   style: TextStyle(
                     fontFamily: 'Arial',
                     fontWeight: FontWeight.w500,
