@@ -126,7 +126,10 @@ class _RegisterPageState extends State<RegisterPage> {
                   controller: _nameController,
                   style: const TextStyle(fontFamily: 'Inter', fontSize: 14),
                   decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 0,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
                       borderSide: const BorderSide(color: Colors.grey),
@@ -161,7 +164,10 @@ class _RegisterPageState extends State<RegisterPage> {
                   controller: _usernameController,
                   style: const TextStyle(fontFamily: 'Inter', fontSize: 14),
                   decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 0,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
                       borderSide: const BorderSide(color: Colors.grey),
@@ -197,7 +203,10 @@ class _RegisterPageState extends State<RegisterPage> {
                   obscureText: true,
                   style: const TextStyle(fontFamily: 'Inter', fontSize: 14),
                   decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 0,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
                       borderSide: const BorderSide(color: Colors.grey),
@@ -243,7 +252,10 @@ class _RegisterPageState extends State<RegisterPage> {
                         style: const TextStyle(fontFamily: 'Inter', fontSize: 14),
                         decoration: const InputDecoration(
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           isDense: true,
                         ),
                       ),
@@ -255,11 +267,17 @@ class _RegisterPageState extends State<RegisterPage> {
                         onTap: _sendingOtp ? null : _onVerifyTapped,
                         borderRadius: BorderRadius.circular(15),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF9ACAD0),
                             borderRadius: BorderRadius.circular(15),
-                            border: Border.all(color: Colors.black54, width: 0.5),
+                            border: Border.all(
+                              color: Colors.black54,
+                              width: 0.5,
+                            ),
                           ),
                           child: _sendingOtp
                               ? const SizedBox(

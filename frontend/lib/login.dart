@@ -24,20 +24,20 @@ class _LoginPageState extends State<LoginPage> {
                 clipper: HeaderClipper(),
                 child: Container(
                   height: 100,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF9ACAD0), // Bottom layer (peeks out)
-                    ),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF9ACAD0), // Bottom layer (peeks out)
                   ),
                 ),
+              ),
               ClipPath(
                 clipper: HeaderClipperSecondary(),
                 child: Container(
                   height: 85,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF4FA8A4), // Top layer overlay
-                    ),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF4FA8A4), // Top layer overlay
                   ),
                 ),
+              ),
             ],
           ),
 
@@ -84,14 +84,17 @@ class _LoginPageState extends State<LoginPage> {
                   style: const TextStyle(fontFamily: 'Arial', fontSize: 14),
                   decoration: InputDecoration(
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: const BorderSide(color: Colors.grey),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                   ),
                 ),
@@ -110,14 +113,17 @@ class _LoginPageState extends State<LoginPage> {
                   style: const TextStyle(fontFamily: 'Arial', fontSize: 14),
                   decoration: InputDecoration(
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: const BorderSide(color: Colors.grey),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                   ),
                 ),
@@ -127,16 +133,19 @@ class _LoginPageState extends State<LoginPage> {
                 SizedBox(
                   width: double.infinity,
                   height: 48,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFA5D1D6),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        elevation: 0,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Navigate to Home Page
+                      Navigator.pushReplacementNamed(context, '/home');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFA5D1D6),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
                       ),
+                      elevation: 0,
+                    ),
                     child: const Text(
                       "Masuk",
                       style: TextStyle(
@@ -213,7 +222,11 @@ class HeaderClipper extends CustomClipper<Path> {
     Path path = Path();
     path.lineTo(0, size.height - 40);
     path.quadraticBezierTo(
-        size.width / 2, size.height + 40, size.width, size.height - 40);
+      size.width / 2,
+      size.height + 40,
+      size.width,
+      size.height - 40,
+    );
     path.lineTo(size.width, 0);
     path.close();
     return path;
@@ -229,7 +242,11 @@ class HeaderClipperSecondary extends CustomClipper<Path> {
     Path path = Path();
     path.lineTo(0, size.height - 30);
     path.quadraticBezierTo(
-        size.width / 2, size.height + 20, size.width, size.height - 70);
+      size.width / 2,
+      size.height + 20,
+      size.width,
+      size.height - 70,
+    );
     path.lineTo(size.width, 0);
     path.close();
     return path;

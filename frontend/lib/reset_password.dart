@@ -17,9 +17,12 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        toolbarHeight: 80, // Tambah tinggi appbar untuk memberi jarak atas lebih banyak
+        toolbarHeight:
+            80, // Tambah tinggi appbar untuk memberi jarak atas lebih banyak
         leading: Padding(
-          padding: const EdgeInsets.only(top: 30.0), // Beri padding atas dan kiri 
+          padding: const EdgeInsets.only(
+            top: 30.0,
+          ), // Beri padding atas dan kiri
           child: IconButton(
             icon: const Icon(
               Icons.arrow_back_ios_new,
@@ -58,19 +61,22 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
             ),
             const SizedBox(height: 30),
             const Text(
-                  "Username atau nomor telepon",
-                  style: TextStyle(
-                    fontFamily: 'Arial',
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+              "Username atau nomor telepon",
+              style: TextStyle(
+                fontFamily: 'Arial',
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             const SizedBox(height: 8),
             TextField(
               controller: _inputController,
               style: const TextStyle(fontFamily: 'Inter', fontSize: 14),
               decoration: InputDecoration(
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: const BorderSide(color: Colors.grey),

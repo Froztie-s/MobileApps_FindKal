@@ -73,7 +73,10 @@ class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
               style: const TextStyle(fontFamily: 'Inter', fontSize: 14),
               decoration: InputDecoration(
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: const BorderSide(color: Colors.grey),
