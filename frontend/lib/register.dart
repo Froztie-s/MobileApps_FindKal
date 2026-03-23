@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'enter_code.dart';
 import 'register_address.dart';
 import 'services/api_service.dart';
 
@@ -50,10 +50,15 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       await ApiService.sendVerificationEmail(email);
       if (!mounted) return;
-      final verified = await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(builder: (_) => EnterCodePage(email: email)),
+      
+      final verified = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return _VerificationDialog(email: email);
+        },
       );
+
       if (verified == true) {
         setState(() {
           _isEmailVerified = true;
@@ -425,6 +430,250 @@ class _RegisterPageState extends State<RegisterPage> {
               const SizedBox(height: 40),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VerificationDialog extends StatefulWidget {
+  final String email;
+
+  const _VerificationDialog({required this.email});
+
+  @override
+  State<_VerificationDialog> createState() => _VerificationDialogState();
+}
+
+class _VerificationDialogState extends State<_VerificationDialog> {
+  final List<TextEditingController> _codeControllers =
+      List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+
+  bool _verifying = false;
+  bool _resending = false;
+  Timer? _timer;
+  int _start = 30;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    setState(() => _start = 30);
+    _timer?.cancel();
+    _timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (Timer timer) {
+        if (_start == 0) {
+          setState(() {
+            timer.cancel();
+          });
+        } else {
+          setState(() {
+            _start--;
+          });
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    for (var controller in _codeControllers) {
+      controller.dispose();
+    }
+    for (var node in _focusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _onCodeChanged(String value, int index) {
+    if (value.isNotEmpty && index < 5) {
+      _focusNodes[index + 1].requestFocus();
+    } else if (value.isEmpty && index > 0) {
+      _focusNodes[index - 1].requestFocus();
+    }
+  }
+
+  Future<void> _onVerify() async {
+    final code = _codeControllers.map((c) => c.text).join();
+    if (code.length < 6) return;
+
+    setState(() => _verifying = true);
+    try {
+      await ApiService.verifyEmailCode(widget.email, code);
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message, style: const TextStyle(fontFamily: 'Inter')),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      setState(() => _verifying = false);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Terjadi kesalahan. Coba lagi.', style: TextStyle(fontFamily: 'Inter')),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      setState(() => _verifying = false);
+    }
+  }
+
+  Future<void> _onResend() async {
+    if (_resending) return;
+    setState(() => _resending = true);
+    try {
+      await ApiService.resendVerificationEmail(widget.email);
+      if (!mounted) return;
+      _startTimer();
+    } catch (_) {
+      if (!mounted) return;
+      // error resending
+    } finally {
+      if (mounted) setState(() => _resending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Verifikasi email kamu",
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                InkWell(
+                  onTap: () => Navigator.pop(context, false),
+                  child: const Icon(Icons.close, color: Colors.black, size: 24),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "Kami telah mengirim 6 digit kode ke email kamu",
+              style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: Colors.black87),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(6, (index) {
+                return Container(
+                  width: 40,
+                  height: 55,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: TextField(
+                      controller: _codeControllers[index],
+                      focusNode: _focusNodes[index],
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      maxLength: 1,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        counterText: "",
+                      ),
+                      onChanged: (value) => _onCodeChanged(value, index),
+                    ),
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 24),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Tidak menerima kode?",
+                  style: TextStyle(fontFamily: 'Inter', fontSize: 12, color: Colors.black87),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    InkWell(
+                      onTap: _start == 0 ? _onResend : null,
+                      child: Text(
+                        "Kirim kode baru",
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 12,
+                          color: const Color(0xFF4AA5A6),
+                          decoration: _start == 0 ? TextDecoration.underline : TextDecoration.none,
+                          decorationColor: const Color(0xFF4AA5A6),
+                        ),
+                      ),
+                    ),
+                    if (_start > 0)
+                      Text(
+                        " dalam 00:${_start.toString().padLeft(2, '0')}",
+                        style: const TextStyle(fontFamily: 'Inter', fontSize: 12, color: Colors.black87),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Center(
+              child: SizedBox(
+                width: 140,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _verifying ? null : _onVerify,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF9ACAD0),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _verifying
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text(
+                          "Verify",
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

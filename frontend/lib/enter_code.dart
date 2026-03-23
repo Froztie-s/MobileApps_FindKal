@@ -244,16 +244,18 @@ class _EnterCodePageState extends State<EnterCodePage> {
             const SizedBox(height: 20),
 
             // Resend Code Text
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Tidak menerima kode? ",
+                  "Tidak menerima kode?",
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 14,
                     color: Colors.grey,
                   ),
                 ),
+                const SizedBox(height: 2),
                 InkWell(
                   onTap: _resending ? null : _onResendTapped,
                   child: _resending
