@@ -169,9 +169,10 @@ class _MapPageState extends State<MapPage> {
         currentIndex: 1, // Tab Map aktif
         onTap: (index) {
           if (index == 0) {
-            Navigator.pop(context); // Kembali ke Home
+            Navigator.pop(context, 0); // Kembali ke Home
+          } else if (index == 2) {
+            Navigator.pop(context, 2); // Kembali & langsung arahkan ke Profile
           }
-          // index 2 → TODO: navigasi ke ProfilePage
         },
         selectedItemColor: const Color(0xFF4AA5A6),
         unselectedItemColor: Colors.black,
