@@ -1,4 +1,4 @@
-from django.conf import settings
+﻿from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.db.models import Q
 from django.contrib.auth.password_validation import validate_password
@@ -115,7 +115,7 @@ def _send_otp_email(email, code):
 
 
 # ---------------------------------------------------------------------------
-# Registration — Send email verification OTP
+# Registration â€” Send email verification OTP
 # POST /api/register/send-verification/
 # Body: { "email": "..." }
 # ---------------------------------------------------------------------------
@@ -144,7 +144,7 @@ class RegisterSendVerificationView(APIView):
 
 
 # ---------------------------------------------------------------------------
-# Registration — Verify email OTP
+# Registration â€” Verify email OTP
 # POST /api/register/verify-email/
 # Body: { "email": "...", "code": "123456" }
 # ---------------------------------------------------------------------------
@@ -172,7 +172,7 @@ class RegisterVerifyEmailView(APIView):
 
 
 # ---------------------------------------------------------------------------
-# Registration — Create account
+# Registration â€” Create account
 # POST /api/register/
 # Body: { name, username, password, email, negara, provinsi, kota, kecamatan, kelurahan }
 # ---------------------------------------------------------------------------
@@ -203,7 +203,7 @@ class RegisterView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check email uniqueness — only block verified accounts
+        # Check email uniqueness â€” only block verified accounts
         if User.objects.filter(email__iexact=email, is_email_verified=True).exists():
             return Response(
                 {"error": "Email ini sudah terdaftar. Silakan masuk menggunakan akun kamu."},
@@ -248,7 +248,7 @@ class RegisterView(APIView):
 
 
 # ---------------------------------------------------------------------------
-# Step 1 — Find account
+# Step 1 â€” Find account
 # POST /api/password-reset/request/
 # Body: { "identifier": "<email_or_name>" }
 # ---------------------------------------------------------------------------
@@ -294,7 +294,7 @@ class PasswordResetRequestView(APIView):
 
 
 # ---------------------------------------------------------------------------
-# Step 1b — Resend code
+# Step 1b â€” Resend code
 # POST /api/password-reset/resend/
 # Body: { "email": "..." }
 # ---------------------------------------------------------------------------
@@ -327,7 +327,7 @@ class PasswordResetResendView(APIView):
 
 
 # ---------------------------------------------------------------------------
-# Step 2 — Verify OTP code
+# Step 2 â€” Verify OTP code
 # POST /api/password-reset/verify-code/
 # Body: { "email": "...", "code": "123456" }
 # Returns: { "reset_token": "<uuid>" }
@@ -374,7 +374,7 @@ class PasswordResetVerifyCodeView(APIView):
 
 
 # ---------------------------------------------------------------------------
-# Step 3 — Set new password
+# Step 3 â€” Set new password
 # POST /api/password-reset/confirm/
 # Body: { "reset_token": "<uuid>", "new_password": "..." }
 # ---------------------------------------------------------------------------
@@ -418,3 +418,45 @@ class PasswordResetConfirmView(APIView):
             {"detail": "Kata sandi berhasil diubah."},
             status=status.HTTP_200_OK,
         )
+
+class LoginView(APIView):
+    def post(self, request):
+        identifier = request.data.get("identifier", "").strip()
+        password = request.data.get("password", "")
+
+        if not identifier or not password:
+            return Response({"error": "Username/Email dan kata sandi wajib diisi"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = None
+        if "@" in identifier:
+            try:
+                user = User.objects.get(email=identifier)
+            except User.DoesNotExist:
+                pass
+        
+        if not user:
+            try:
+                user = User.objects.get(username=identifier)
+            except User.DoesNotExist:
+                pass
+
+        if user:
+            if user.role != "user":
+                return Response({"error": "Akun tidak memiliki akses yang sesuai."}, status=status.HTTP_403_FORBIDDEN)
+            if user.check_password(password):
+                return Response({
+                    "message": "Berhasil masuk",
+                    "user": {
+                        "id": user.id,
+                        "email": user.email,
+                        "username": user.username,
+                        "name": user.name
+                    }
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "Kata sandi salah"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({"error": "Akun tidak ditemukan"}, status=status.HTTP_404_NOT_FOUND)
+
+
+

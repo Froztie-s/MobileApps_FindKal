@@ -203,4 +203,28 @@ class ApiService {
       throw ApiException('Tidak dapat terhubung ke server: $e');
     }
   }
+
+  /// Login user using username/email and password
+  static Future<Map<String, dynamic>> login(String identifier, String password) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/login/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'identifier': identifier, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        return body['user'] as Map<String, dynamic>;
+      }
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      throw ApiException(body['error'] ?? 'Gagal masuk. Periksa kembali informasi Anda.');
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tidak dapat terhubung ke server: $e');
+    }
+  }
 }

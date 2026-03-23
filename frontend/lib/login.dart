@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'services/api_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -134,9 +135,51 @@ class _LoginPageState extends State<LoginPage> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Navigate to Home Page
-                      Navigator.pushReplacementNamed(context, '/home');
+                    onPressed: () async {
+                      final identifier = _usernameController.text.trim();
+                      final password = _passwordController.text;
+
+                      if (identifier.isEmpty || password.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Username/Email dan kata sandi wajib diisi.', style: TextStyle(fontFamily: 'Inter')),
+                            backgroundColor: Colors.redAccent,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            margin: const EdgeInsets.only(bottom: 20, left: 24, right: 24),
+                          ),
+                        );
+                        return;
+                      }
+
+                      try {
+                        final user = await ApiService.login(identifier, password);
+                        if (!mounted) return;
+                        // Navigate to Home Page
+                        Navigator.pushReplacementNamed(context, '/home');
+                      } on ApiException catch (e) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(e.message, style: const TextStyle(fontFamily: 'Inter')),
+                            backgroundColor: Colors.redAccent,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            margin: const EdgeInsets.only(bottom: 20, left: 24, right: 24),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Terjadi kesalahan. Coba lagi.', style: TextStyle(fontFamily: 'Inter')),
+                            backgroundColor: Colors.redAccent,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            margin: const EdgeInsets.only(bottom: 20, left: 24, right: 24),
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFA5D1D6),
