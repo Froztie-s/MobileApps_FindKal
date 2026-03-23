@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'create_new_password.dart';
 import 'services/api_service.dart';
+
+enum EnterCodeMode { registration, passwordReset }
 
 class EnterCodePage extends StatefulWidget {
   final String email;
+  final EnterCodeMode mode;
 
-  const EnterCodePage({super.key, required this.email});
+  const EnterCodePage({
+    super.key,
+    required this.email,
+    this.mode = EnterCodeMode.registration,
+  });
 
   @override
   State<EnterCodePage> createState() => _EnterCodePageState();
@@ -48,9 +56,20 @@ class _EnterCodePageState extends State<EnterCodePage> {
 
     setState(() => _verifying = true);
     try {
-      await ApiService.verifyEmailCode(widget.email, code);
-      if (!mounted) return;
-      Navigator.pop(context, true); // return verified=true to register.dart
+      if (widget.mode == EnterCodeMode.passwordReset) {
+        final resetToken = await ApiService.verifyPasswordResetCode(widget.email, code);
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CreateNewPasswordPage(resetToken: resetToken),
+          ),
+        );
+      } else {
+        await ApiService.verifyEmailCode(widget.email, code);
+        if (!mounted) return;
+        Navigator.pop(context, true);
+      }
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -91,7 +110,11 @@ class _EnterCodePageState extends State<EnterCodePage> {
     if (_resending) return;
     setState(() => _resending = true);
     try {
-      await ApiService.resendVerificationEmail(widget.email);
+      if (widget.mode == EnterCodeMode.passwordReset) {
+        await ApiService.resendPasswordResetCode(widget.email);
+      } else {
+        await ApiService.resendVerificationEmail(widget.email);
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -164,7 +187,9 @@ class _EnterCodePageState extends State<EnterCodePage> {
             ),
             const SizedBox(height: 8),
             Text(
-              "Kami telah mengirim kode melalui email ke ${widget.email}. Masukkan kode untuk konfirmasi akun",
+              widget.mode == EnterCodeMode.passwordReset
+                  ? "Kami telah mengirim kode melalui email ke ${widget.email}. Masukkan kode untuk mengatur ulang kata sandi"
+                  : "Kami telah mengirim kode melalui email ke ${widget.email}. Masukkan kode untuk konfirmasi akun",
               style: const TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 14,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'login.dart';
 import 'services/api_service.dart';
 
 const String _apiBase = 'https://api-regional-indonesia.vercel.app/api';
@@ -162,7 +163,11 @@ class _RegisterAddressPageState extends State<RegisterAddressPage> {
         kelurahan: _selectedVillage!,
       );
       if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (_) => false,
+      );
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

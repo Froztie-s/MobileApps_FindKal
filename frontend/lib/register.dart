@@ -18,6 +18,18 @@ class _RegisterPageState extends State<RegisterPage> {
 
   bool _sendingOtp = false;
   bool _isEmailVerified = false;
+  String _verifiedEmail = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(() {
+      if (_isEmailVerified &&
+          _emailController.text.trim() != _verifiedEmail) {
+        setState(() => _isEmailVerified = false);
+      }
+    });
+  }
 
   Future<void> _onVerifyTapped() async {
     final email = _emailController.text.trim();
@@ -43,7 +55,10 @@ class _RegisterPageState extends State<RegisterPage> {
         MaterialPageRoute(builder: (_) => EnterCodePage(email: email)),
       );
       if (verified == true) {
-        setState(() => _isEmailVerified = true);
+        setState(() {
+          _isEmailVerified = true;
+          _verifiedEmail = email;
+        });
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -84,6 +99,53 @@ class _RegisterPageState extends State<RegisterPage> {
     } finally {
       if (mounted) setState(() => _sendingOtp = false);
     }
+  }
+
+  void _onSelanjutnyaTapped() {
+    final name = _nameController.text.trim();
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+
+    final errors = <String>[];
+
+    if (name.isEmpty) errors.add('Nama lengkap wajib diisi.');
+    if (username.isEmpty) errors.add('Username wajib diisi.');
+
+    if (password.isEmpty) {
+      errors.add('Password wajib diisi.');
+    } else {
+      if (password.length < 8) errors.add('Password terlalu pendek. Harus minimal 8 karakter.');
+      if (RegExp(r'^\d+$').hasMatch(password)) errors.add('Password tidak boleh hanya berisi angka.');
+    }
+
+    if (errors.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            errors.join(' '),
+            style: const TextStyle(fontFamily: 'Inter'),
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          margin: const EdgeInsets.only(bottom: 20, left: 24, right: 24),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RegisterAddressPage(
+          name: name,
+          username: username,
+          password: password,
+          email: _emailController.text.trim(),
+        ),
+      ),
+    );
   }
 
   @override
@@ -272,7 +334,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF9ACAD0),
+                            color: _isEmailVerified
+                                ? const Color(0xFF4AA5A6)
+                                : const Color(0xFF9ACAD0),
                             borderRadius: BorderRadius.circular(15),
                             border: Border.all(
                               color: Colors.black54,
@@ -285,15 +349,21 @@ class _RegisterPageState extends State<RegisterPage> {
                                   height: 14,
                                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                 )
-                              : const Text(
-                                  "verify",
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black,
-                                  ),
-                                ),
+                              : _isEmailVerified
+                                  ? const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 16,
+                                    )
+                                  : const Text(
+                                      "verify",
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black,
+                                      ),
+                                    ),
                         ),
                       ),
                     ),
@@ -308,21 +378,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: _isEmailVerified
-                      ? () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => RegisterAddressPage(
-                                name: _nameController.text.trim(),
-                                username: _usernameController.text.trim(),
-                                password: _passwordController.text,
-                                email: _emailController.text.trim(),
-                              ),
-                            ),
-                          );
-                        }
-                      : null,
+                  onPressed: _isEmailVerified ? _onSelanjutnyaTapped : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFA5D1D6),
                     foregroundColor: Colors.white,

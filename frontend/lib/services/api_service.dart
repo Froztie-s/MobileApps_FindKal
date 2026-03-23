@@ -29,9 +29,6 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 15));
 
-      if (response.statusCode == 409) {
-        throw const ApiException('Email ini sudah terdaftar dan digunakan oleh akun lain.');
-      }
       if (response.statusCode != 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
         throw ApiException(body['error'] ?? 'Gagal mengirim kode verifikasi.');
@@ -105,6 +102,100 @@ class ApiService {
       if (response.statusCode != 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
         throw ApiException(body['error'] ?? 'Kode tidak valid atau sudah kedaluwarsa.');
+      }
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tidak dapat terhubung ke server: $e');
+    }
+  }
+
+  /// Find account by username or email and send a password-reset OTP.
+  /// Returns the email address the OTP was sent to.
+  static Future<String> requestPasswordReset(String identifier) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/password-reset/request/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'identifier': identifier}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        return body['email'] as String;
+      }
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      throw ApiException(body['error'] ?? body['detail'] ?? 'Akun tidak ditemukan.');
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tidak dapat terhubung ke server: $e');
+    }
+  }
+
+  /// Resend the password-reset OTP to [email].
+  static Future<void> resendPasswordResetCode(String email) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/password-reset/resend/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode != 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        throw ApiException(body['error'] ?? body['detail'] ?? 'Gagal mengirim ulang kode.');
+      }
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tidak dapat terhubung ke server: $e');
+    }
+  }
+
+  /// Verify the password-reset OTP. Returns a short-lived reset token.
+  static Future<String> verifyPasswordResetCode(String email, String code) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/password-reset/verify-code/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'code': code}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        return body['reset_token'] as String;
+      }
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      throw ApiException(body['error'] ?? body['detail'] ?? 'Kode tidak valid atau sudah kedaluwarsa.');
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tidak dapat terhubung ke server: $e');
+    }
+  }
+
+  /// Set a new password using the [resetToken] obtained after OTP verification.
+  static Future<void> confirmPasswordReset(String resetToken, String newPassword) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/password-reset/confirm/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'reset_token': resetToken, 'new_password': newPassword}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode != 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final err = body['error'] ?? body['detail'];
+        throw ApiException(err is List ? err.join(' ') : err ?? 'Gagal mengubah kata sandi.');
       }
     } on ApiException {
       rethrow;

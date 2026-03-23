@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'login.dart';
 import 'reset_password.dart';
-import 'create_new_password.dart';
 import 'register.dart';
 import 'home.dart';
 import 'notification.dart';
@@ -26,7 +25,6 @@ class MyApp extends StatelessWidget {
       home: const SplashScreen(),
       routes: {
         '/reset-password': (context) => const ResetPasswordPage(),
-        '/create-new-password': (context) => const CreateNewPasswordPage(),
         '/register': (context) => const RegisterPage(),
         '/home': (context) => const HomePage(),
         '/notification': (context) => const NotificationPage(),

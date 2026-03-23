@@ -1,5 +1,5 @@
-import resend
 from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
 from django.db.models import Q
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -11,13 +11,107 @@ from .models import User, EmailVerification, PasswordResetToken, PendingEmailVer
 
 
 def _send_otp_email(email, code):
-    resend.api_key = settings.RESEND_API_KEY
-    resend.Emails.send({
-        "from": "FindKal <onboarding@resend.dev>",
-        "to": [email],
-        "subject": "Kode Verifikasi FindKal",
-        "text": f"Kode verifikasi kamu adalah: {code}\nKode ini berlaku selama 10 menit.",
-    })
+    subject = "Kode Verifikasi FindKal"
+    plain_text = (
+        f"Halo!\n\n"
+        f"Berikut kode OTP untuk verifikasi akun kamu:\n\n"
+        f"{code}\n\n"
+        f"Kode ini berlaku selama 10 menit.\n"
+        f"Jangan bagikan kode ini kepada siapapun.\n\n"
+        f"Jika kamu tidak merasa mendaftar di FindKal, abaikan email ini."
+    )
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    </head>
+    <body style="margin:0;padding:0;background-color:#f4f4f4;font-family:'Helvetica Neue',Arial,sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4;padding:40px 0;">
+        <tr>
+          <td align="center">
+            <table width="480" cellpadding="0" cellspacing="0"
+                   style="background-color:#ffffff;border-radius:16px;overflow:hidden;
+                          box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+
+              <!-- Header -->
+              <tr>
+                <td align="center"
+                    style="background-color:#4AA5A6;padding:32px 40px 24px;">
+                  <span style="font-size:28px;font-weight:800;color:#ffffff;
+                               letter-spacing:1px;font-family:'Helvetica Neue',Arial,sans-serif;">
+                    FindKal
+                  </span>
+                </td>
+              </tr>
+
+              <!-- Body -->
+              <tr>
+                <td style="padding:36px 40px 12px;">
+                  <p style="margin:0 0 8px;font-size:16px;color:#333333;">
+                    Halo! Berikut kode OTP untuk verifikasi akun kamu:
+                  </p>
+                </td>
+              </tr>
+
+              <!-- OTP Box -->
+              <tr>
+                <td align="center" style="padding:8px 40px 24px;">
+                  <div style="background-color:#E8F6F6;border-radius:12px;
+                              padding:20px 40px;display:inline-block;">
+                    <span style="font-size:42px;font-weight:800;
+                                 letter-spacing:12px;color:#4AA5A6;
+                                 font-family:'Courier New',monospace;">
+                      {code}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Info -->
+              <tr>
+                <td style="padding:0 40px 32px;">
+                  <p style="margin:0 0 6px;font-size:14px;color:#555555;">
+                    Kode ini berlaku selama <strong>10 menit</strong>.
+                  </p>
+                  <p style="margin:0;font-size:14px;color:#555555;">
+                    Jangan bagikan kode ini kepada siapapun.
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Divider -->
+              <tr>
+                <td style="padding:0 40px;">
+                  <hr style="border:none;border-top:1px solid #eeeeee;margin:0;" />
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="padding:20px 40px 32px;">
+                  <p style="margin:0;font-size:12px;color:#aaaaaa;text-align:center;">
+                    Jika kamu tidak merasa mendaftar di FindKal, abaikan email ini.
+                  </p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    """
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=plain_text,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[email],
+    )
+    msg.attach_alternative(html, "text/html")
+    msg.send(fail_silently=False)
 
 
 # ---------------------------------------------------------------------------
@@ -33,7 +127,7 @@ class RegisterSendVerificationView(APIView):
 
         if User.objects.filter(email__iexact=email, is_email_verified=True).exists():
             return Response(
-                {"error": "Email sudah digunakan oleh akun lain."},
+                {"error": "Email ini sudah terdaftar. Silakan masuk menggunakan akun kamu."},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -109,12 +203,14 @@ class RegisterView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check email uniqueness
-        if User.objects.filter(email__iexact=email).exists():
+        # Check email uniqueness — only block verified accounts
+        if User.objects.filter(email__iexact=email, is_email_verified=True).exists():
             return Response(
-                {"error": "Email sudah digunakan oleh akun lain."},
+                {"error": "Email ini sudah terdaftar. Silakan masuk menggunakan akun kamu."},
                 status=status.HTTP_409_CONFLICT,
             )
+        # Clean up any incomplete/unverified user with the same email
+        User.objects.filter(email__iexact=email, is_email_verified=False).delete()
 
         # Check username uniqueness
         if User.objects.filter(username__iexact=username).exists():
