@@ -41,11 +41,7 @@ class MapSearchResultPage extends StatelessWidget {
                       child: Row(
                         children: [
                           const SizedBox(width: 14),
-                          const Icon(
-                            Icons.search,
-                            color: Color(0xFF4AA5A6),
-                            size: 20,
-                          ),
+                          const Icon(Icons.search, color: Color(0xFF4AA5A6), size: 20),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -84,7 +80,7 @@ class MapSearchResultPage extends StatelessWidget {
               ),
             ),
 
-            // ── MAP PLACEHOLDER (setengah layar) ───────────────────────
+            // ── MAP PLACEHOLDER ────────────────────────────────────────
             Expanded(
               flex: 5,
               child: Padding(
@@ -94,10 +90,7 @@ class MapSearchResultPage extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.grey.shade400,
-                      width: 1,
-                    ),
+                    border: Border.all(color: Colors.grey.shade400, width: 1),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.08),
@@ -110,11 +103,7 @@ class MapSearchResultPage extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.map_outlined,
-                          size: 50,
-                          color: Colors.grey.shade600,
-                        ),
+                        Icon(Icons.map_outlined, size: 50, color: Colors.grey.shade600),
                         const SizedBox(height: 12),
                         Text(
                           'Map Placeholder',
@@ -142,10 +131,7 @@ class MapSearchResultPage extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.grey.shade300,
-                      width: 1.5,
-                    ),
+                    border: Border.all(color: Colors.grey.shade300, width: 1.5),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.07),
@@ -163,20 +149,13 @@ class MapSearchResultPage extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.grey.shade300,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: Colors.grey.shade400,
-                              width: 1,
-                            ),
+                            border: Border.all(color: Colors.grey.shade400, width: 1),
                           ),
                           child: Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.image_outlined,
-                                  size: 36,
-                                  color: Colors.grey.shade500,
-                                ),
+                                Icon(Icons.image_outlined, size: 36, color: Colors.grey.shade500),
                                 const SizedBox(height: 6),
                                 Text(
                                   'Foto Placeholder',
@@ -196,14 +175,19 @@ class MapSearchResultPage extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                         child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
+                          onTap: () async {
+                            final result = await Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) =>
+                              PageRouteBuilder(
+                                pageBuilder: (_, __, ___) =>
                                     MapDirectionPage(destination: query),
+                                transitionDuration: Duration.zero,
+                                reverseTransitionDuration: Duration.zero,
                               ),
                             );
+                            if (result != null && context.mounted) {
+                              Navigator.pop(context, result);
+                            }
                           },
                           child: Container(
                             width: double.infinity,
@@ -234,19 +218,14 @@ class MapSearchResultPage extends StatelessWidget {
           ],
         ),
       ),
-
-      // ── BOTTOM NAVIGATION BAR ──────────────────────────────────────
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 1,
         onTap: (index) {
-          if (index == 0) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/home',
-              (route) => false,
-            );
+          if (index == 0) Navigator.popUntil(context, (route) => route.isFirst);
+          if (index == 2) {
+            // Pop semua sampai MapPage, bawa result 2 agar HomePage buka Profile
+            Navigator.pop(context, 2);
           }
-          // index 2 → TODO: ProfilePage
         },
         selectedItemColor: const Color(0xFF4AA5A6),
         unselectedItemColor: Colors.black,

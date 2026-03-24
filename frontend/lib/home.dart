@@ -18,7 +18,12 @@ class _HomePageState extends State<HomePage> {
   if (index == 1) {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const MapPage()),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const MapPage(),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
     );
     if (result != null && result is int) {
       setState(() {

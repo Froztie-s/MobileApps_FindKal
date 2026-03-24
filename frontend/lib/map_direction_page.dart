@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'map_page.dart';
 
 class MapDirectionPage extends StatelessWidget {
   final String destination;
@@ -41,11 +40,7 @@ class MapDirectionPage extends StatelessWidget {
                       child: Row(
                         children: [
                           const SizedBox(width: 14),
-                          const Icon(
-                            Icons.search,
-                            color: Color(0xFF4AA5A6),
-                            size: 20,
-                          ),
+                          const Icon(Icons.search, color: Color(0xFF4AA5A6), size: 20),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -84,7 +79,7 @@ class MapDirectionPage extends StatelessWidget {
               ),
             ),
 
-            // ── MAP PLACEHOLDER DENGAN RUTE (full sisa layar) ─────────
+            // ── MAP PLACEHOLDER DENGAN RUTE ───────────────────────────
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -93,10 +88,7 @@ class MapDirectionPage extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.grey.shade400,
-                      width: 1,
-                    ),
+                    border: Border.all(color: Colors.grey.shade400, width: 1),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.08),
@@ -107,16 +99,11 @@ class MapDirectionPage extends StatelessWidget {
                   ),
                   child: Stack(
                     children: [
-                      // Teks placeholder di tengah
                       Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.alt_route_rounded,
-                              size: 50,
-                              color: Colors.grey.shade600,
-                            ),
+                            Icon(Icons.alt_route_rounded, size: 50, color: Colors.grey.shade600),
                             const SizedBox(height: 12),
                             Text(
                               'Map Placeholder dengan Rute',
@@ -147,26 +134,13 @@ class MapDirectionPage extends StatelessWidget {
           ],
         ),
       ),
-
-      // ── BOTTOM NAVIGATION BAR ──────────────────────────────────────
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 1,
         onTap: (index) {
-          if (index == 0) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/home',
-              (route) => false,
-            );
+          if (index == 0) Navigator.popUntil(context, (route) => route.isFirst);
+          if (index == 2) {
+            Navigator.pop(context, 2);
           }
-          if (index == 1) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const MapPage()),
-              (route) => false,
-            );
-          }
-          // index 2 → TODO: ProfilePage
         },
         selectedItemColor: const Color(0xFF4AA5A6),
         unselectedItemColor: Colors.black,

@@ -29,7 +29,6 @@ class _MapPageState extends State<MapPage> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               child: Row(
                 children: [
-                  // Tombol back
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: const Icon(
@@ -39,8 +38,6 @@ class _MapPageState extends State<MapPage> {
                     ),
                   ),
                   const SizedBox(width: 12),
-
-                  // Search field
                   Expanded(
                     child: Container(
                       height: 44,
@@ -83,16 +80,17 @@ class _MapPageState extends State<MapPage> {
                               ),
                             ),
                           ),
-                          // Tombol Cari
                           GestureDetector(
                             onTap: () {
                               final query = _searchController.text.trim();
                               if (query.isEmpty) return;
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
+                                PageRouteBuilder(
+                                  pageBuilder: (_, __, ___) =>
                                       MapSearchResultPage(query: query),
+                                  transitionDuration: Duration.zero,
+                                  reverseTransitionDuration: Duration.zero,
                                 ),
                               );
                             },
@@ -132,10 +130,7 @@ class _MapPageState extends State<MapPage> {
                   decoration: BoxDecoration(
                     color: Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.grey.shade400,
-                      width: 1,
-                    ),
+                    border: Border.all(color: Colors.grey.shade400, width: 1),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.08),
@@ -148,11 +143,7 @@ class _MapPageState extends State<MapPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.map_outlined,
-                          size: 50,
-                          color: Colors.grey.shade600,
-                        ),
+                        Icon(Icons.map_outlined, size: 50, color: Colors.grey.shade600),
                         const SizedBox(height: 12),
                         Text(
                           'Map Placeholder',
@@ -172,21 +163,11 @@ class _MapPageState extends State<MapPage> {
           ],
         ),
       ),
-
-      // ── BOTTOM NAVIGATION BAR ─────────────────────────────────────
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1, // Tab Map aktif
+        currentIndex: 1,
         onTap: (index) {
-          if (index == 0) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/home',
-              (route) => false,
-            );
-            Navigator.pop(context, 0); // Kembali ke Home
-          } else if (index == 2) {
-            Navigator.pop(context, 2); // Kembali & langsung arahkan ke Profile
-          }
+          if (index == 0) Navigator.pop(context, 0);
+          if (index == 2) Navigator.pop(context, 2);
         },
         selectedItemColor: const Color(0xFF4AA5A6),
         unselectedItemColor: Colors.black,

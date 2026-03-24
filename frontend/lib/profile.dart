@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'services/auth_state.dart';
 import 'edit_profile.dart';
+import 'settings_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -32,7 +33,12 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               IconButton(
                 icon: const Icon(Icons.settings_outlined, size: 30, color: Colors.black),
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SettingsPage()),
+                  );
+                },
               ),
             ],
           ),
