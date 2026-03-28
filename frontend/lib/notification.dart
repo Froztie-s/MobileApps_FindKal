@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'notification_detail_page.dart';
 
 class NotificationPage extends StatelessWidget {
   const NotificationPage({super.key});
@@ -44,6 +45,14 @@ class NotificationPage extends StatelessWidget {
             title: "Tempat Ini Favoritnya Warlok!",
             message:
                 "Tempat-tempat viral di Tangerang buat dikunjungi bareng teman-temanmu. Yuk, intip dulu tempat-tempat ini!",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationDetailPage(),
+                ),
+              );
+            },
           ),
           _buildNotificationItem(
             title: "Jangan Lupa Mampir!",
@@ -58,13 +67,17 @@ class NotificationPage extends StatelessWidget {
   Widget _buildNotificationItem({
     required String title,
     required String message,
+    VoidCallback? onTap,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 12),
-        Text(
-          title,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 12),
+          Text(
+            title,
           style: const TextStyle(
             fontFamily: 'Inter',
             fontSize: 16,
@@ -86,6 +99,7 @@ class NotificationPage extends StatelessWidget {
         const Divider(color: Color(0xFFE0E0E0), thickness: 1, height: 1),
         const SizedBox(height: 4),
       ],
+     ),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'services/auth_state.dart';
+import 'unggahan_preview_page.dart';
 
 class BuatUnggahanPage extends StatefulWidget {
   const BuatUnggahanPage({super.key});
@@ -278,8 +279,19 @@ class _BuatUnggahanPageState extends State<BuatUnggahanPage> {
         height: 48,
         child: ElevatedButton(
           onPressed: _isFormValid ? () {
-            // Handle action
-            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => UnggahanPreviewPage(
+                  images: _selectedImages,
+                  locationName: _nameController.text,
+                  rating: _selectedRating,
+                  address: _addressController.text,
+                  review: _reviewController.text,
+                  budget: _selectedBudget,
+                ),
+              ),
+            );
           } : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF9ACAD0),
