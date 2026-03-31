@@ -20,24 +20,15 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   bool _hasUnreadNotification = true;
 
-<<<<<<< HEAD
-  // Map preview state
-  static const LatLng _defaultCenter = LatLng(-0.5022, 117.1536);
-  LatLng _mapCenter = _defaultCenter;
-  LatLng? _userLocation;
-  final MapController _mapController = MapController();
-=======
   final MapController _mapController = MapController();
   static const _fallback = LatLng(-0.5022, 117.1536);
   LatLng? _userLocation;
   bool _locating = false;
->>>>>>> bcbd3e2a7a387b0dc1ab6a2a915c96fac2b5f25c
 
   @override
   void initState() {
     super.initState();
-<<<<<<< HEAD
-    _loadUserLocation();
+    _requestLocationAndMove();
   }
 
   void _openSearch() {
@@ -47,35 +38,12 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _loadUserLocation() async {
-=======
-    _requestLocationAndMove();
-  }
-
   Future<void> _requestLocationAndMove() async {
->>>>>>> bcbd3e2a7a387b0dc1ab6a2a915c96fac2b5f25c
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-<<<<<<< HEAD
-    if (permission == LocationPermission.whileInUse ||
-        permission == LocationPermission.always) {
-      try {
-        final position = await Geolocator.getCurrentPosition(
-          locationSettings:
-              const LocationSettings(accuracy: LocationAccuracy.high),
-        );
-        if (mounted) {
-          setState(() {
-            _userLocation = LatLng(position.latitude, position.longitude);
-            _mapCenter = _userLocation!;
-          });
-          _mapController.move(_mapCenter, 15);
-        }
-      } catch (_) {}
-=======
-    
+
     if (mounted) setState(() => _locating = false);
 
     if (permission == LocationPermission.whileInUse ||
@@ -103,7 +71,6 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (_) {
       if (mounted) setState(() => _locating = false);
->>>>>>> bcbd3e2a7a387b0dc1ab6a2a915c96fac2b5f25c
     }
   }
 
@@ -135,8 +102,8 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: _selectedIndex == 2 
-            ? const ProfilePage() 
+        child: _selectedIndex == 2
+            ? const ProfilePage()
             : _buildHomeContent(),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -269,119 +236,6 @@ class _HomePageState extends State<HomePage> {
                   // Map Preview
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-<<<<<<< HEAD
-                    child: GestureDetector(
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const MapPage()),
-                        );
-                        if (result != null && result is int && mounted) {
-                          setState(() => _selectedIndex = result);
-                        }
-                      },
-                      child: Container(
-                        height: 350,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: Stack(
-                            children: [
-                              FlutterMap(
-                                mapController: _mapController,
-                                options: MapOptions(
-                                  initialCenter: _mapCenter,
-                                  initialZoom: 15,
-                                  interactionOptions:
-                                      const InteractionOptions(
-                                    flags: InteractiveFlag.none,
-                                  ),
-                                ),
-                                children: [
-                                  TileLayer(
-                                    urlTemplate:
-                                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                    userAgentPackageName:
-                                        'com.example.findkal',
-                                  ),
-                                  if (_userLocation != null)
-                                    MarkerLayer(
-                                      markers: [
-                                        Marker(
-                                          point: _userLocation!,
-                                          child: Container(
-                                            width: 22,
-                                            height: 22,
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  const Color(0xFF4AA5A6),
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                  color: Colors.white,
-                                                  width: 3),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black
-                                                      .withValues(
-                                                          alpha: 0.3),
-                                                  blurRadius: 6,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                ],
-                              ),
-                              // Tap overlay hint
-                              Positioned(
-                                bottom: 12,
-                                right: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white
-                                        .withValues(alpha: 0.9),
-                                    borderRadius:
-                                        BorderRadius.circular(20),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.open_in_full,
-                                          size: 14,
-                                          color: Color(0xFF4AA5A6)),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'Buka Peta',
-                                        style: TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontSize: 12,
-                                          color: Color(0xFF4AA5A6),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-=======
                     child: Container(
                       height: 350,
                       decoration: BoxDecoration(
@@ -393,7 +247,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 10,
                             offset: const Offset(0, 5),
                           ),
@@ -406,18 +260,18 @@ class _HomePageState extends State<HomePage> {
                                 child: CircularProgressIndicator(color: Color(0xFF4AA5A6)),
                               )
                             : GestureDetector(
-                                onPanDown: (_) => null,
-                                onTap: () => _onItemTapped(1), // Navigates to Map tab
-                                behavior: HitTestBehavior.translucent, // Ensures the gesture takes priority
+                                onPanDown: (_) {},
+                                onTap: () => _onItemTapped(1),
+                                behavior: HitTestBehavior.translucent,
                                 child: IgnorePointer(
-                                  ignoring: true, // Prevents map from stealing gesture events
+                                  ignoring: true,
                                   child: FlutterMap(
                                     mapController: _mapController,
                                     options: MapOptions(
                                       initialCenter: _userLocation ?? _fallback,
                                       initialZoom: 15,
                                       interactionOptions: const InteractionOptions(
-                                        flags: InteractiveFlag.none, // Make it view-only
+                                        flags: InteractiveFlag.none,
                                       ),
                                     ),
                                 children: [
@@ -440,7 +294,7 @@ class _HomePageState extends State<HomePage> {
                                               boxShadow: [
                                                 BoxShadow(
                                                   color:
-                                                      Colors.black.withOpacity(0.3),
+                                                      Colors.black.withValues(alpha: 0.3),
                                                   blurRadius: 6,
                                                 ),
                                               ],
@@ -456,7 +310,6 @@ class _HomePageState extends State<HomePage> {
                              ),
                             ),
                           ),
->>>>>>> bcbd3e2a7a387b0dc1ab6a2a915c96fac2b5f25c
                     ),
                   ),
 

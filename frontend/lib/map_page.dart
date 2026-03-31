@@ -262,6 +262,7 @@ class _MapPageState extends State<MapPage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 1,
         onTap: (index) {
+          // Your version: pop with index so HomePage state machine handles routing
           if (index == 0) Navigator.pop(context, 0);
           if (index == 2) Navigator.pop(context, 2);
         },

@@ -31,12 +31,12 @@ class EditProfileModel {
 
   /// Serialise name + bio for API submission.
   Map<String, dynamic> toMap() => {
-    'name': name.trim(),
-    'bio': bio?.trim(),
-    'deletePhoto': photoDeleted,
-    // newPhoto.path should be uploaded separately as multipart
-    if (newPhoto != null) 'newPhotoPath': newPhoto!.path,
-  };
+        'name': name.trim(),
+        'bio': bio?.trim(),
+        'deletePhoto': photoDeleted,
+        // newPhoto.path should be uploaded separately as multipart
+        if (newPhoto != null) 'newPhotoPath': newPhoto!.path,
+      };
 
   @override
   String toString() =>

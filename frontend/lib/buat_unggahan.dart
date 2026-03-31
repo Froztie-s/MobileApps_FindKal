@@ -2,11 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'services/auth_state.dart';
-<<<<<<< HEAD
-import 'models/unggahan_model.dart';
-=======
 import 'unggahan_preview_page.dart';
->>>>>>> bcbd3e2a7a387b0dc1ab6a2a915c96fac2b5f25c
 
 class BuatUnggahanPage extends StatefulWidget {
   const BuatUnggahanPage({super.key});
@@ -33,16 +29,13 @@ class _BuatUnggahanPageState extends State<BuatUnggahanPage> {
     super.dispose();
   }
 
-  UnggahanModel get _currentModel => UnggahanModel(
-        images: List.unmodifiable(_selectedImages),
-        rating: _selectedRating,
-        namaTempat: _nameController.text,
-        alamat: _addressController.text,
-        ulasan: _reviewController.text,
-        budget: _selectedBudget,
-      );
-
-  bool get _isFormValid => _currentModel.isValid;
+  bool get _isFormValid =>
+      _selectedImages.isNotEmpty &&
+      _selectedRating > 0 &&
+      _nameController.text.trim().isNotEmpty &&
+      _addressController.text.trim().isNotEmpty &&
+      _reviewController.text.trim().isNotEmpty &&
+      _selectedBudget.isNotEmpty;
 
   Future<void> _pickImages() async {
     if (_selectedImages.length >= 4) {
@@ -51,11 +44,11 @@ class _BuatUnggahanPageState extends State<BuatUnggahanPage> {
       );
       return;
     }
-    
+
     int remaining = 4 - _selectedImages.length;
     try {
       final List<XFile> pickedFiles = await _picker.pickMultiImage();
-      
+
       if (pickedFiles.isNotEmpty) {
         setState(() {
           if (pickedFiles.length > remaining) {
@@ -286,11 +279,6 @@ class _BuatUnggahanPageState extends State<BuatUnggahanPage> {
         height: 48,
         child: ElevatedButton(
           onPressed: _isFormValid ? () {
-<<<<<<< HEAD
-            final model = _currentModel;
-            debugPrint(model.toString());
-            Navigator.pop(context);
-=======
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -304,7 +292,6 @@ class _BuatUnggahanPageState extends State<BuatUnggahanPage> {
                 ),
               ),
             );
->>>>>>> bcbd3e2a7a387b0dc1ab6a2a915c96fac2b5f25c
           } : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF9ACAD0),
