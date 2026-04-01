@@ -1,5 +1,9 @@
+﻿import json
+import re
 
+content = '''
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'services/api_service.dart';
 import 'models/unggahan.dart';
 import 'unggahan_detail_page.dart';
@@ -176,7 +180,7 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
                                 hintStyle: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 14,
-                                  color: const Color(0xFF4AA5A6).withValues(alpha: 0.8),
+                                  color: const Color(0xFF4AA5A6).withOpacity(0.8),
                                   fontStyle: FontStyle.italic,
                                 ),
                                 border: InputBorder.none,
@@ -363,3 +367,7 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
     );
   }
 }
+'''
+with open('frontend/lib/search_overlay_page.dart', 'w', encoding='utf-8') as f:
+    f.write(content)
+print("SUCCESS writing new search search_overlay_page")

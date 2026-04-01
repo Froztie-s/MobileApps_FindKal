@@ -49,7 +49,7 @@ final List<Unggahan> dummyUnggahans = [
     address: "The Green, Cluster Manhattan B7/17 BSD City, Cilenggang, Kec. Serpong, Kota Tangerang Selatan, Banten 15310",
     review: "Makanan dan minumannya enak, manteppp dah pokoknyaaa... Harga juga okes... Ambiencenya gak kalah mantep, tenang dan ademmm...",
     budget: "Rp 50k - Rp 100k",
-    imagePaths: ['assets/images/ba1.jpg', 'assets/images/ba2.jpg', 'assets/images/ba3.jpg'],
+    imagePaths: [],
   ),
   Unggahan(
     userName: "Richard",
@@ -60,7 +60,7 @@ final List<Unggahan> dummyUnggahans = [
     address: "Jl. BSD Grand Boulevard, Sampora, Kec. Cisauk, Kabupaten Tangerang, Banten 15345",
     review: "Favourite spot to go buat WFC dan ngeliatin pemandangan. Makanannya not bad and there are lots of options. Plenty of beverages options too. Servicenya lumayan, around 20 menit udah dateng makanannya. Definitely will go back here :)",
     budget: "Rp 50k - Rp 100k",
-    imagePaths: ['assets/images/hygge1.jpg', 'assets/images/hygge2.jpg', 'assets/images/hygge3.jpg', 'assets/images/hygge4.jpg'],
+    imagePaths: [],
   ),
   Unggahan(
     userName: "Sabine",
@@ -71,7 +71,7 @@ final List<Unggahan> dummyUnggahans = [
     address: "Mall Ararasa BSD, Lantai Unit GC, Lengkong Kulon, Kec. Pagedangan, Kabupaten Tangerang, Banten 15331",
     review: "Kafenya lucu, estetik, dan mewah yang aku temukan dekat rumah. Mereka menyajikan kopi yang enak dan berbagai varian salt bread dengan rasa yang lezat.",
     budget: "Rp 50k - Rp 100k",
-    imagePaths: ['assets/images/bnb1.jpg', 'assets/images/bnb2.jpg', 'assets/images/bnb3.jpg'],
+    imagePaths: [],
   ),
   Unggahan(
     userName: "Kaatiya",
@@ -82,7 +82,7 @@ final List<Unggahan> dummyUnggahans = [
     address: "Ruko, Jl. Goldfinch Raya Jl. Springs Boulevard.31, Blok SGD No.30, Kabupaten Tangerang, Banten 15810",
     review: "menurutku enak, tapi bukan yang enak banget. yang jelas menurutku masih best menu cheesecakenya 🫶🏻",
     budget: "Rp 1k - Rp 50k",
-    imagePaths: ['assets/images/artirasa1.jpg', 'assets/images/artirasa2.jpg', 'assets/images/artirasa3.jpg'],
+    imagePaths: [],
   ),
   Unggahan(
     userName: "Sanca Jill",
@@ -93,6 +93,6 @@ final List<Unggahan> dummyUnggahans = [
     address: "PJ7G+473 Zena at The Mozia M5, Jl. Lkr. Botanika Selatan No.1, Lengkong Kulon, Pagedangan, BSD City, Banten 15331",
     review: "Salah satu salt bread terenak yang udah aku coba! Luarnya crunchy dalemnya lembut. Untuk varian original bener-bener kerasa butternya dan crunchy bagian luarnya. Yang korean fried chicken enggak kalah enak tapi agak sedikit terlalu asin menurut lidahku, tapi kembali ke selera masing-masing. Favorit aku varian manis, milkeu way. Bener-bener kerasa susunya dan creamnya juga enggak bikin enek, tapi tetep kerasa crunchy dan buttery dari salt breadnya. Gak cukup kayaknya berkunjung sekali, will be repurchasing!",
     budget: "Rp 1k - Rp 50k",
-    imagePaths: ['assets/images/sbseoul1.jpg', 'assets/images/sbseoul2.jpg'],
+    imagePaths: [],
   ),
 ];
