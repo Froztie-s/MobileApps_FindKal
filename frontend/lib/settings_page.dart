@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'services/auth_state.dart';
 import 'terms_conditions_page.dart';
 import 'privacy_notice_page.dart';
+import 'password_security_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -39,7 +40,7 @@ class SettingsPage extends StatelessWidget {
               Navigator.pop(ctx);
               Navigator.pushNamedAndRemoveUntil(
                 context,
-                '/login',
+                '/',
                 (route) => false,
               );
             },
@@ -107,7 +108,12 @@ class SettingsPage extends StatelessWidget {
           _buildMenuItem(
             label: 'Password & Keamanan',
             onTap: () {
-              // TODO: navigasi ke PasswordSecurityPage
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PasswordSecurityPage(),
+                ),
+              );
             },
           ),
 
