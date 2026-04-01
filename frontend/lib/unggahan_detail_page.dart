@@ -54,7 +54,7 @@ class UnggahanDetailPage extends StatelessWidget {
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: Colors.grey.shade300,
-                  backgroundImage: _getAvatarImage(unggahan.imagePaths.first),
+                  backgroundImage: _getAvatarImage(),
                 ),
                 const SizedBox(width: 12),
                 Column(
@@ -175,11 +175,19 @@ class UnggahanDetailPage extends StatelessWidget {
     );
   }
 
-  ImageProvider _getAvatarImage(String fallbackImagePath) {
-    return AssetImage(fallbackImagePath); // Using the post image for the avatar just as a placeholder since we don't have distinct user avatars
+  ImageProvider _imageProvider(String path) {
+    if (path.startsWith('http')) return NetworkImage(path);
+    return AssetImage(path);
+  }
+
+  ImageProvider _getAvatarImage() {
+    if (unggahan.userAvatar != null) return _imageProvider(unggahan.userAvatar!);
+    if (unggahan.imagePaths.isNotEmpty) return _imageProvider(unggahan.imagePaths.first);
+    return const AssetImage('assets/images/logo.png');
   }
 
   Widget _buildClickableImage(BuildContext context, int index, {double? width, double? height}) {
+    final path = unggahan.imagePaths[index];
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -192,12 +200,9 @@ class UnggahanDetailPage extends StatelessWidget {
           ),
         );
       },
-      child: Image.asset(
-        unggahan.imagePaths[index],
-        fit: BoxFit.cover,
-        width: width,
-        height: height,
-      ),
+      child: path.startsWith('http')
+          ? Image.network(path, fit: BoxFit.cover, width: width, height: height)
+          : Image.asset(path, fit: BoxFit.cover, width: width, height: height),
     );
   }
 
@@ -387,12 +392,9 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
           return InteractiveViewer(
             minScale: 1.0,
             maxScale: 4.0,
-            child: Image.asset(
-              widget.imagePaths[index],
-              fit: BoxFit.contain,
-              width: double.infinity,
-              height: double.infinity,
-            ),
+            child: widget.imagePaths[index].startsWith('http')
+                ? Image.network(widget.imagePaths[index], fit: BoxFit.contain, width: double.infinity, height: double.infinity)
+                : Image.asset(widget.imagePaths[index], fit: BoxFit.contain, width: double.infinity, height: double.infinity),
           );
         },
       ),

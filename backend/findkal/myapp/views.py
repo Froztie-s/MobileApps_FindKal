@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import User, EmailVerification, PasswordResetToken, PendingEmailVerification
+from .models import User, EmailVerification, PasswordResetToken, PendingEmailVerification, Unggahan, UnggahanImage
 
 
 def _send_otp_email(email, code):
@@ -506,6 +506,116 @@ class LoginView(APIView):
                 return Response({"error": "Kata sandi salah"}, status=status.HTTP_400_BAD_REQUEST)
         
         return Response({"error": "Akun tidak ditemukan"}, status=status.HTTP_404_NOT_FOUND)
+
+
+def _serialize_unggahan(unggahan, request):
+    images = [
+        request.build_absolute_uri(img.image.url)
+        for img in unggahan.images.all()
+    ]
+    photo_url = (
+        request.build_absolute_uri(unggahan.user.profile_photo.url)
+        if unggahan.user.profile_photo else None
+    )
+    return {
+        "id":              unggahan.id,
+        "userId":          unggahan.user.id,
+        "userName":        unggahan.user.name,
+        "usernameHandle":  f"@{unggahan.user.username}",
+        "userAvatar":      photo_url,
+        "placeName":       unggahan.nama_tempat,
+        "rating":          unggahan.rating,
+        "address":         unggahan.alamat,
+        "review":          unggahan.ulasan,
+        "budget":          unggahan.budget,
+        "imagePaths":      images,
+        "createdAt":       unggahan.created_at.isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# List / Create unggahan
+# GET  /api/unggahan/          — returns all unggahan (newest first)
+# POST /api/unggahan/          — multipart: user_id, nama_tempat, alamat,
+#                                ulasan, rating, budget, image (×1-4)
+# ---------------------------------------------------------------------------
+class UnggahanListCreateView(APIView):
+    def get(self, request):
+        unggahans = Unggahan.objects.select_related("user").prefetch_related("images").all()
+        return Response([_serialize_unggahan(u, request) for u in unggahans])
+
+    def post(self, request):
+        user_id    = request.data.get("user_id")
+        nama_tempat = request.data.get("nama_tempat", "").strip()
+        alamat     = request.data.get("alamat", "").strip()
+        ulasan     = request.data.get("ulasan", "").strip()
+        rating     = request.data.get("rating")
+        budget     = request.data.get("budget", "").strip()
+        images     = request.FILES.getlist("image")
+
+        if not all([user_id, nama_tempat, alamat, ulasan, rating, budget]):
+            return Response({"error": "Semua field wajib diisi."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            rating = int(rating)
+            if not (1 <= rating <= 5):
+                raise ValueError
+        except (ValueError, TypeError):
+            return Response({"error": "Rating harus berupa angka 1–5."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not images or len(images) > 4:
+            return Response({"error": "Wajib mengunggah 1–4 gambar."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User tidak ditemukan."}, status=status.HTTP_404_NOT_FOUND)
+
+        unggahan = Unggahan.objects.create(
+            user=user,
+            nama_tempat=nama_tempat,
+            alamat=alamat,
+            ulasan=ulasan,
+            rating=rating,
+            budget=budget,
+        )
+        for i, img in enumerate(images):
+            UnggahanImage.objects.create(unggahan=unggahan, image=img, order=i)
+
+        return Response(_serialize_unggahan(unggahan, request), status=status.HTTP_201_CREATED)
+
+
+# ---------------------------------------------------------------------------
+# Retrieve / Delete single unggahan
+# GET    /api/unggahan/<id>/
+# DELETE /api/unggahan/<id>/   — only the owner (user_id in body/query)
+# ---------------------------------------------------------------------------
+class UnggahanDetailView(APIView):
+    def _get_object(self, pk):
+        try:
+            return Unggahan.objects.select_related("user").prefetch_related("images").get(pk=pk)
+        except Unggahan.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        unggahan = self._get_object(pk)
+        if not unggahan:
+            return Response({"error": "Unggahan tidak ditemukan."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(_serialize_unggahan(unggahan, request))
+
+    def delete(self, request, pk):
+        unggahan = self._get_object(pk)
+        if not unggahan:
+            return Response({"error": "Unggahan tidak ditemukan."}, status=status.HTTP_404_NOT_FOUND)
+
+        user_id = request.data.get("user_id") or request.query_params.get("user_id")
+        if str(unggahan.user.id) != str(user_id):
+            return Response({"error": "Kamu tidak memiliki izin untuk menghapus unggahan ini."}, status=status.HTTP_403_FORBIDDEN)
+
+        for img in unggahan.images.all():
+            img.image.delete(save=False)
+        unggahan.delete()
+        return Response({"detail": "Unggahan berhasil dihapus."}, status=status.HTTP_200_OK)
 
 
 

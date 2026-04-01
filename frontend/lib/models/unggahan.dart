@@ -1,9 +1,8 @@
-import 'package:flutter/material.dart';
-
 class Unggahan {
+  final int? id;
   final String userName;
   final String usernameHandle;
-  final String userAvatar; // just generic icon or color if not provided
+  final String? userAvatar;
   final String placeName;
   final int rating;
   final String address;
@@ -12,9 +11,10 @@ class Unggahan {
   final List<String> imagePaths;
 
   Unggahan({
+    this.id,
     required this.userName,
     required this.usernameHandle,
-    required this.userAvatar,
+    this.userAvatar,
     required this.placeName,
     required this.rating,
     required this.address,
@@ -22,6 +22,21 @@ class Unggahan {
     required this.budget,
     required this.imagePaths,
   });
+
+  factory Unggahan.fromJson(Map<String, dynamic> json) {
+    return Unggahan(
+      id:              json['id'] as int?,
+      userName:        json['userName'] as String,
+      usernameHandle:  json['usernameHandle'] as String,
+      userAvatar:      json['userAvatar'] as String?,
+      placeName:       json['placeName'] as String,
+      rating:          json['rating'] as int,
+      address:         json['address'] as String,
+      review:          json['review'] as String,
+      budget:          json['budget'] as String,
+      imagePaths:      List<String>.from(json['imagePaths'] as List),
+    );
+  }
 }
 
 final List<Unggahan> dummyUnggahans = [

@@ -8,6 +8,7 @@ import 'buat_unggahan.dart';
 import 'profile.dart';
 import 'models/unggahan.dart';
 import 'unggahan_detail_page.dart';
+import 'services/api_service.dart';
 import 'ai_trip_plan_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -20,6 +21,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   bool _hasUnreadNotification = true;
+  List<Unggahan> _unggahans = [];
+  bool _loadingFeed = true;
 
   final MapController _mapController = MapController();
   static const _fallback = LatLng(-0.5022, 117.1536);
@@ -30,6 +33,21 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _requestLocationAndMove();
+    _fetchUnggahans();
+  }
+
+  Future<void> _fetchUnggahans() async {
+    try {
+      final data = await ApiService.fetchUnggahans();
+      if (mounted) {
+        setState(() {
+          _unggahans = data.map((j) => Unggahan.fromJson(j)).toList();
+          _loadingFeed = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingFeed = false);
+    }
   }
 
   void _openSearch() {
@@ -332,14 +350,18 @@ class _HomePageState extends State<HomePage> {
                   // Horizontal Scrollable Cards
                   SizedBox(
                     height: 240,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.only(left: 16, right: 8),
-                      itemCount: dummyUnggahans.length,
-                      itemBuilder: (context, index) {
-                        return _buildExplorasiCard(dummyUnggahans[index]);
-                      },
-                    ),
+                    child: _loadingFeed
+                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF4AA5A6)))
+                        : _unggahans.isEmpty
+                            ? const Center(child: Text('Belum ada unggahan.', style: TextStyle(fontFamily: 'Inter', color: Colors.grey)))
+                            : ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.only(left: 16, right: 8),
+                                itemCount: _unggahans.length,
+                                itemBuilder: (context, index) {
+                                  return _buildExplorasiCard(_unggahans[index]);
+                                },
+                              ),
                   ),
                   const SizedBox(height: 30),
                 ],
@@ -405,7 +427,9 @@ class _HomePageState extends State<HomePage> {
                   CircleAvatar(
                     radius: 12,
                     backgroundColor: Colors.grey.shade400,
-                    backgroundImage: AssetImage(unggahan.imagePaths.first),
+                    backgroundImage: unggahan.imagePaths.isNotEmpty
+                        ? NetworkImage(unggahan.imagePaths.first)
+                        : null,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -429,10 +453,12 @@ class _HomePageState extends State<HomePage> {
                   decoration: BoxDecoration(
                     color: Colors.grey.shade400,
                     borderRadius: BorderRadius.circular(12),
-                    image: DecorationImage(
-                      image: AssetImage(unggahan.imagePaths.first),
-                      fit: BoxFit.cover,
-                    ),
+                    image: unggahan.imagePaths.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(unggahan.imagePaths.first),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
                 ),
               ),

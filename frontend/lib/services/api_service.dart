@@ -241,6 +241,25 @@ class ApiService {
     }
   }
 
+  /// Fetch all unggahan (newest first)
+  static Future<List<Map<String, dynamic>>> fetchUnggahans() async {
+    try {
+      final response = await http
+          .get(Uri.parse('$_baseUrl/unggahan/'))
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final list = jsonDecode(response.body) as List;
+        return list.cast<Map<String, dynamic>>();
+      }
+      throw ApiException('Gagal memuat unggahan.');
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tidak dapat terhubung ke server: $e');
+    }
+  }
+
   /// Login user using username/email and password
   static Future<Map<String, dynamic>> login(String identifier, String password) async {
     try {

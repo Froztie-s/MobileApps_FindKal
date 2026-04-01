@@ -161,3 +161,40 @@ class PendingEmailVerification(models.Model):
 
     def __str__(self):
         return f"PendingOTP for {self.email} ({'verified' if self.is_verified else 'used' if self.is_used else 'active'})"
+
+
+BUDGET_CHOICES = [
+    ("Rp 1k - Rp 50k",     "Rp 1k - Rp 50k"),
+    ("Rp 50k - Rp 100k",   "Rp 50k - Rp 100k"),
+    ("Rp 100k - Rp 150k",  "Rp 100k - Rp 150k"),
+    ("Rp 150k - Rp 200k",  "Rp 150k - Rp 200k"),
+    ("Rp 250k+",            "Rp 250k+"),
+]
+
+
+class Unggahan(models.Model):
+    user        = models.ForeignKey(User, on_delete=models.CASCADE, related_name="unggahans")
+    nama_tempat = models.CharField(max_length=200)
+    alamat      = models.TextField()
+    ulasan      = models.TextField()
+    rating      = models.PositiveSmallIntegerField()  # 1–5
+    budget      = models.CharField(max_length=30, choices=BUDGET_CHOICES)
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.nama_tempat} by {self.user.username}"
+
+
+class UnggahanImage(models.Model):
+    unggahan = models.ForeignKey(Unggahan, on_delete=models.CASCADE, related_name="images")
+    image    = models.ImageField(upload_to="unggahan_images/")
+    order    = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order"]
+
+    def __str__(self):
+        return f"Image {self.order} for {self.unggahan}"
