@@ -8,6 +8,7 @@ import 'buat_unggahan.dart';
 import 'profile.dart';
 import 'models/unggahan.dart';
 import 'unggahan_detail_page.dart';
+import 'ai_trip_plan_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -359,7 +360,16 @@ class _HomePageState extends State<HomePage> {
                     );
                   }),
                   const SizedBox(height: 16),
-                  _buildCircularButton(imageAsset: 'assets/images/location.png', size: 26),
+                  _buildCircularButton(
+                    imageAsset: 'assets/images/location.png', 
+                    size: 26,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const AiTripPlanPage()),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
