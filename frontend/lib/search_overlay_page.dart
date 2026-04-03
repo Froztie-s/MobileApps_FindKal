@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'services/api_service.dart';
 import 'models/unggahan.dart';
 import 'unggahan_detail_page.dart';
+import 'place_detail_page.dart';
 
 class SearchOverlayPage extends StatefulWidget {
   const SearchOverlayPage({super.key});
@@ -17,6 +18,7 @@ class PlaceSummary {
   final int postCount;
   final double averageRating;
   final Unggahan sampleUnggahan;
+  final List<Unggahan> unggahans;
 
   PlaceSummary({
     required this.placeName,
@@ -24,6 +26,7 @@ class PlaceSummary {
     required this.postCount,
     required this.averageRating,
     required this.sampleUnggahan,
+    required this.unggahans,
   });
 }
 
@@ -70,6 +73,7 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
           postCount: list.length,
           averageRating: avgRating,
           sampleUnggahan: list.first, // or we can handle a new page to list them
+          unggahans: list,
         ));
       });
 
@@ -245,7 +249,7 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
                             onTap: () {
                                 Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (context) => UnggahanDetailPage(unggahan: place.sampleUnggahan)),
+                                    MaterialPageRoute(builder: (context) => PlaceDetailPage(place: place)),
                                 );
                             },
                             child: Container(
@@ -304,7 +308,7 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
                                                                     const SizedBox(width: 8),
                                                                 ]),
                                                             Text(
-                                                                "()",
+                                                                "(${place.postCount})",
                                                                 style: TextStyle(
                                                                     color: Colors.grey.shade600,
                                                                     fontFamily: 'Inter',
