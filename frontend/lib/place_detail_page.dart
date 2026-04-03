@@ -1,7 +1,11 @@
+import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // import for Clipboard
+import 'package:url_launcher/url_launcher.dart'; // import for url_launcher
 import 'models/unggahan.dart';
 import 'search_overlay_page.dart';
 import 'unggahan_detail_page.dart';
+import 'map_direction_page.dart'; // import map direction page
 
 class PlaceDetailPage extends StatefulWidget {
   final PlaceSummary place;
@@ -17,6 +21,7 @@ class PlaceDetailPage extends StatefulWidget {
 
 class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isSaved = false;
 
   @override
   void initState() {
@@ -100,6 +105,9 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
   }
 
   Widget _buildBottomActions() {
+    // Determine target website (we use "instagram.com" as placeholder for now, per the overview UI)
+    const String targetWebsite = "https://instagram.com";
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -110,44 +118,94 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildActionItem(Icons.directions, "Directions", true),
-            _buildActionItem(Icons.bookmark_border, "Save", false),
-            _buildActionItem(Icons.share_outlined, "Share", false),
-            _buildActionItem(Icons.public, "Website", false),
+            _buildActionItem(Icons.directions, "Directions", true, () {
+              // Directs to MapDirectionPage with the target place prepopulated
+              // Default to a dummy coordinate if not available
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MapDirectionPage(
+                    destinationName: widget.place.placeName,
+                    destination: const LatLng(-6.175392, 106.827153), // Dummy coord for logic testing
+                  ),
+                ),
+              );
+            }),
+            _buildActionItem(_isSaved ? Icons.bookmark : Icons.bookmark_border, "Save", false, () {
+              setState(() {
+                _isSaved = !_isSaved;
+              });
+              ScaffoldMessenger.of(context).clearSnackBars();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(_isSaved ? '${widget.place.placeName} disimpan ke bookmark' : '${widget.place.placeName} dihapus dari bookmark'),
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+            }),
+            _buildActionItem(Icons.share_outlined, "Share", false, () async {
+              // Prepares a dummy specific link to the place on the FindKal app
+              final String findkalLink = 'https://findkal.id/place/${Uri.encodeComponent(widget.place.placeName.toLowerCase().replaceAll(' ', '-'))}';
+              await Clipboard.setData(ClipboardData(text: findkalLink));
+              
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).clearSnackBars();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Tautan $findkalLink disalin ke papan klip!'), duration: const Duration(seconds: 2)),
+                );
+              }
+            }),
+            _buildActionItem(Icons.public, "Website", false, () async {
+              final Uri url = Uri.parse(targetWebsite);
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Tidak dapat membuka website.'), duration: Duration(seconds: 1)),
+                  );
+                }
+              }
+            }),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActionItem(IconData icon, String label, bool isPrimary) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: isPrimary ? const Color(0xFF0F9D58) : Colors.transparent, // Google Maps green or transparent
-            shape: BoxShape.circle,
-            border: isPrimary ? null : Border.all(color: Colors.grey.shade300),
+  Widget _buildActionItem(IconData icon, String label, bool isPrimary, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isPrimary ? const Color(0xFF0F9D58) : Colors.transparent, // Google Maps green or transparent
+              shape: BoxShape.circle,
+              border: isPrimary ? null : Border.all(color: Colors.grey.shade300),
+            ),
+            child: Icon(
+              icon,
+              color: isPrimary ? Colors.white : const Color(0xFF4AA5A6),
+              size: 22,
+            ),
           ),
-          child: Icon(
-            icon,
-            color: isPrimary ? Colors.white : const Color(0xFF4AA5A6),
-            size: 22,
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              fontWeight: isPrimary ? FontWeight.bold : FontWeight.w500,
+              color: isPrimary ? Colors.black87 : Colors.grey.shade700,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 12,
-            fontWeight: isPrimary ? FontWeight.bold : FontWeight.w500,
-            color: isPrimary ? Colors.black87 : Colors.grey.shade700,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -371,10 +429,18 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
   Widget _buildReviewCard(Unggahan unggahan) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // User Header
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => UnggahanDetailPage(unggahan: unggahan)),
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // User Header
           Row(
             children: [
               CircleAvatar(
@@ -393,7 +459,30 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
                 ],
               ),
               const Spacer(),
-              const Icon(Icons.more_horiz, color: Colors.grey),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_horiz, color: Colors.grey),
+                onSelected: (value) {
+                  if (value == 'report') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Ulasan dilaporkan'), duration: Duration(seconds: 2)),
+                    );
+                  } else if (value == 'share') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Tautan ulasan disalin'), duration: Duration(seconds: 2)),
+                    );
+                  }
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                  const PopupMenuItem<String>(
+                    value: 'share',
+                    child: Text('Bagikan Ulasan', style: TextStyle(fontFamily: 'Inter')),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'report',
+                    child: Text('Laporkan Ulasan', style: TextStyle(fontFamily: 'Inter')),
+                  ),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -425,19 +514,29 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
                 scrollDirection: Axis.horizontal,
                 itemCount: unggahan.imagePaths.length,
                 itemBuilder: (ctx, i) {
-                  return Container(
-                    width: 100,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey.shade300,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        unggahan.imagePaths[i],
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image, color: Colors.grey),
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => _FullScreenImagePage(imageUrl: unggahan.imagePaths[i]),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 100,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey.shade300,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          unggahan.imagePaths[i],
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image, color: Colors.grey),
+                        ),
                       ),
                     ),
                   );
@@ -446,6 +545,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
             ),
           ],
         ],
+      ),
       ),
     );
   }
@@ -551,6 +651,32 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
           ),
         );
       },
+    );
+  }
+}
+
+class _FullScreenImagePage extends StatelessWidget {
+  final String imageUrl;
+
+  const _FullScreenImagePage({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.contain,
+            errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image, color: Colors.white, size: 50),
+          ),
+        ),
+      ),
     );
   }
 }

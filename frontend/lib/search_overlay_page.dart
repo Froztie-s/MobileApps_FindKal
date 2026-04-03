@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'services/api_service.dart';
 import 'models/unggahan.dart';
-import 'unggahan_detail_page.dart';
 import 'place_detail_page.dart';
 
 class SearchOverlayPage extends StatefulWidget {
@@ -39,6 +38,7 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
   bool _loading = true;
 
   int _selectedFilter = 0; // 0 = Terbaru, 1 = Populer, 2 = Terfavorit
+  final Set<String> _bookmarkedPlaces = {}; // Local state to track bookmarked places
 
   @override
   void initState() {
@@ -141,70 +141,62 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFA), // Softer off-white background
       body: SafeArea(
         child: Column(
           children: [
-            // SEARCH BAR AND BACK
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 12, 16, 8),
+            // FLOATING SEARCH BAR
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF4AA5A6), size: 24),
+                    icon: const Icon(Icons.arrow_back, color: Colors.black87),
                     onPressed: () => Navigator.pop(context),
                   ),
                   Expanded(
-                    child: Container(
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                          color: const Color(0xFF4AA5A6),
-                          width: 1.5,
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      onChanged: _onSearchChanged,
+                      decoration: InputDecoration(
+                        hintText: 'Cari tempat atau lokasi...',
+                        hintStyle: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 15,
+                          color: Colors.grey.shade400,
                         ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 14),
-                          const Icon(Icons.search, color: Color(0xFF4AA5A6), size: 22),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _controller,
-                              focusNode: _focusNode,
-                              onChanged: _onSearchChanged,
-                              decoration: InputDecoration(
-                                hintText: 'Mau ke mana hari ini?',
-                                hintStyle: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 14,
-                                  color: const Color(0xFF4AA5A6).withValues(alpha: 0.8),
-                                  fontStyle: FontStyle.italic,
-                                ),
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                              ),
-                              style: const TextStyle(fontFamily: 'Inter', fontSize: 14),
-                            ),
-                          ),
-                          if (_controller.text.isNotEmpty)
-                            GestureDetector(
-                                onTap: () {
-                                _controller.clear();
-                                _onSearchChanged('');
-                                },
-                                child: const Padding(
-                                padding: EdgeInsets.only(right: 12),
-                                child: Icon(Icons.close, color: Colors.grey, size: 20),
-                                ),
-                            )
-                        ],
-                      ),
+                      style: const TextStyle(fontFamily: 'Inter', fontSize: 15),
                     ),
                   ),
+                  if (_controller.text.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.grey, size: 20),
+                      onPressed: () {
+                        _controller.clear();
+                        _onSearchChanged('');
+                      },
+                    )
+                  else
+                    const Padding(
+                      padding: EdgeInsets.only(right: 16),
+                      child: Icon(Icons.search, color: Colors.grey, size: 22),
+                    ),
                 ],
               ),
             ),
@@ -213,18 +205,19 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: SizedBox(
-                height: 40,
+                height: 36, // Smaller, strictly defined height for modern pills
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       margin: const EdgeInsets.only(right: 8),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade400),
+                        color: Colors.white,
+                        border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Icon(Icons.tune, color: Colors.black87, size: 20),
+                      child: const Icon(Icons.tune, color: Colors.black87, size: 18),
                     ),
                     _buildFilterChip("Terbaru", 0),
                     _buildFilterChip("Populer", 1),
@@ -239,7 +232,16 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
               child: _loading 
                 ? const Center(child: CircularProgressIndicator(color: Color(0xFF4AA5A6)))
                 : _displayedPlaces.isEmpty
-                    ? const Center(child: Text("Tidak ada hasil yang cocok.", style: TextStyle(fontFamily: 'Inter', color: Colors.grey)))
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
+                            const SizedBox(height: 16),
+                            Text("Tidak ada hasil yang cocok.", style: TextStyle(fontFamily: 'Inter', color: Colors.grey.shade500, fontSize: 16)),
+                          ],
+                        ),
+                      )
                     : ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         itemCount: _displayedPlaces.length,
@@ -253,71 +255,165 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
                                 );
                             },
                             child: Container(
-                                margin: const EdgeInsets.only(bottom: 24),
+                                margin: const EdgeInsets.only(bottom: 20),
                                 decoration: BoxDecoration(
-                                    color: const Color(0xFFE5E9E9), // Matching grey box in screenshot
-                                    borderRadius: BorderRadius.circular(24),
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.04),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
                                 ),
                                 child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.stretch,
                                     children: [
                                         // Image section
-                                        ClipRRect(
-                                            borderRadius: const BorderRadius.only(
-                                                topLeft: Radius.circular(24),
-                                                topRight: Radius.circular(24),
+                                        Stack(
+                                          children: [
+                                            ClipRRect(
+                                                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                                                child: Container(
+                                                    height: 200,
+                                                    width: double.infinity,
+                                                    color: Colors.grey.shade200,
+                                                    child: place.imagePath.isNotEmpty 
+                                                        ? Image.network(
+                                                            place.imagePath,
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder: (ctx, err, curr) => const Icon(Icons.broken_image, color: Colors.grey),
+                                                        )
+                                                        : const Icon(Icons.image, size: 50, color: Colors.grey),
+                                                )
                                             ),
-                                            child: Container(
-                                                height: 180,
-                                                color: Colors.grey.shade300,
-                                                child: place.imagePath.isNotEmpty 
-                                                    ? Image.network(
-                                                        place.imagePath,
-                                                        fit: BoxFit.cover,
-                                                        errorBuilder: (ctx, err, curr) => const Icon(Icons.broken_image, color: Colors.grey),
-                                                    )
-                                                    : const Icon(Icons.image, size: 50, color: Colors.grey),
-                                            )
+                                            // Top Right Bookmark (Functional)
+                                            Positioned(
+                                              top: 12,
+                                              right: 12,
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    if (_bookmarkedPlaces.contains(place.placeName)) {
+                                                      _bookmarkedPlaces.remove(place.placeName);
+                                                      ScaffoldMessenger.of(context).clearSnackBars();
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text('${place.placeName} dihapus dari bookmark'), 
+                                                          duration: const Duration(seconds: 1),
+                                                        ),
+                                                      );
+                                                    } else {
+                                                      _bookmarkedPlaces.add(place.placeName);
+                                                      ScaffoldMessenger.of(context).clearSnackBars();
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text('${place.placeName} ditambahkan ke bookmark'), 
+                                                          duration: const Duration(seconds: 1),
+                                                        ),
+                                                      );
+                                                    }
+                                                  });
+                                                },
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(8),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white.withOpacity(0.9),
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: Icon(
+                                                    _bookmarkedPlaces.contains(place.placeName) 
+                                                        ? Icons.bookmark 
+                                                        : Icons.bookmark_border, 
+                                                    size: 20, 
+                                                    color: _bookmarkedPlaces.contains(place.placeName) 
+                                                        ? const Color(0xFF4AA5A6) 
+                                                        : Colors.black87,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            // Bottom Left Rating Badge
+                                            if (place.averageRating > 0)
+                                              Positioned(
+                                                bottom: 12,
+                                                left: 12,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white.withOpacity(0.95),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(Icons.star, color: Colors.orange, size: 16),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        place.averageRating.toStringAsFixed(1), 
+                                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, fontFamily: 'Inter'),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                         // Text section
                                         Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                                            child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            padding: const EdgeInsets.all(16),
+                                            child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                    Expanded(
-                                                        child: Text(
-                                                            place.placeName,
-                                                            style: const TextStyle(
-                                                                color: Color(0xFF4AA5A6),
-                                                                fontFamily: 'Inter',
-                                                                fontSize: 18,
-                                                                fontWeight: FontWeight.bold,
+                                                    Row(
+                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Expanded(
+                                                            child: Text(
+                                                                place.placeName,
+                                                                style: const TextStyle(
+                                                                    color: Colors.black87,
+                                                                    fontFamily: 'Inter',
+                                                                    fontSize: 18,
+                                                                    fontWeight: FontWeight.bold,
+                                                                ),
+                                                                maxLines: 1,
+                                                                overflow: TextOverflow.ellipsis,
+                                                            ),
+                                                        ),
+                                                        const SizedBox(width: 8),
+                                                        Text(
+                                                          "(${place.postCount} ulasan)",
+                                                          style: TextStyle(
+                                                              color: Colors.grey.shade500,
+                                                              fontFamily: 'Inter',
+                                                              fontSize: 13,
+                                                              fontWeight: FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    Row(
+                                                      children: [
+                                                        Icon(Icons.location_on, size: 16, color: Colors.grey.shade400),
+                                                        const SizedBox(width: 4),
+                                                        Expanded(
+                                                          child: Text(
+                                                            place.sampleUnggahan.address,
+                                                            style: TextStyle(
+                                                              color: Colors.grey.shade600,
+                                                              fontFamily: 'Inter',
+                                                              fontSize: 13,
                                                             ),
                                                             maxLines: 1,
                                                             overflow: TextOverflow.ellipsis,
+                                                          ),
                                                         ),
+                                                      ],
                                                     ),
-                                                    Row(
-                                                        children: [
-                                                            if (place.averageRating > 0)
-                                                                Row(children: [
-                                                                    const Icon(Icons.star, color: Colors.orange, size: 18),
-                                                                    const SizedBox(width: 4),
-                                                                    Text(place.averageRating.toStringAsFixed(1), style: TextStyle(color: Colors.grey.shade700, fontFamily: 'Inter', fontWeight: FontWeight.bold)),
-                                                                    const SizedBox(width: 8),
-                                                                ]),
-                                                            Text(
-                                                                "(${place.postCount})",
-                                                                style: TextStyle(
-                                                                    color: Colors.grey.shade600,
-                                                                    fontFamily: 'Inter',
-                                                                    fontSize: 16,
-                                                                    fontWeight: FontWeight.w600,
-                                                                ),
-                                                            ),
-                                                        ]
-                                                    )
                                                 ],
                                             ),
                                         ),
@@ -344,22 +440,23 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
             });
         },
         child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             margin: const EdgeInsets.only(right: 8),
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-                color: Colors.white,
+                color: isSelected ? const Color(0xFF4AA5A6) : Colors.white,
                 border: Border.all(
-                    color: isSelected ? const Color(0xFF4AA5A6) : Colors.grey.shade400,
-                    width: isSelected ? 1.5 : 1,
+                    color: isSelected ? const Color(0xFF4AA5A6) : Colors.grey.shade300,
+                    width: 1,
                 ),
                 borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
                 label,
                 style: TextStyle(
-                    color: isSelected ? const Color(0xFF4AA5A6) : Colors.grey.shade500,
+                    color: isSelected ? Colors.white : Colors.grey.shade600,
                     fontFamily: 'Inter',
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                     fontSize: 13,
                 )
             ),
