@@ -38,6 +38,7 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
   bool _loading = true;
 
   int _selectedFilter = 0; // 0 = Terbaru, 1 = Populer, 2 = Terfavorit
+  double _minRatingFilter = 0.0; // Filter by minimum rating
   final Set<String> _bookmarkedPlaces = {}; // Local state to track bookmarked places
 
   @override
@@ -95,32 +96,38 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
   }
 
   void _onSearchChanged(String query) {
-    final q = query.trim().toLowerCase();
-    if (q.isEmpty) {
-      _displayedPlaces = List.from(_allPlaces);
-    } else {
-      // Find exact matches
-      var exactMatches = _allPlaces.where((p) => p.placeName.toLowerCase().contains(q)).toList();
-      
-      // If no exact match, we do fuzzy match (any word matches)
-      if (exactMatches.isEmpty) {
-        final words = q.split(' ');
-        exactMatches = _allPlaces.where((p) {
-          final pLower = p.placeName.toLowerCase();
-          return words.any((w) => w.isNotEmpty && pLower.contains(w));
-        }).toList();
-      }
-      
-      _displayedPlaces = exactMatches;
-    }
-    _applyFilter();
+    _applyFilter(); // Re-evaluate all filters including the search query
   }
 
   void _applyFilter() {
     setState(() {
+      final q = _controller.text.trim().toLowerCase();
+      List<PlaceSummary> result = _allPlaces;
+
+      // 1. Text Search
+      if (q.isNotEmpty) {
+        var exactMatches = result.where((p) => p.placeName.toLowerCase().contains(q)).toList();
+        if (exactMatches.isEmpty) {
+          final words = q.split(' ');
+          exactMatches = result.where((p) {
+            final pLower = p.placeName.toLowerCase();
+            return words.any((w) => w.isNotEmpty && pLower.contains(w));
+          }).toList();
+        }
+        result = exactMatches;
+      }
+
+      // 2. Rating Filter
+      if (_minRatingFilter > 0) {
+        result = result.where((p) => p.averageRating >= _minRatingFilter).toList();
+      }
+
+      _displayedPlaces = List.from(result);
+
+      // 3. Sorting
       if (_selectedFilter == 0) {
         // Terbaru - assume id sorting if no date, or just leave as is
-        _displayedPlaces.sort((a, b) => b.sampleUnggahan.id?.compareTo(a.sampleUnggahan.id ?? 0) ?? 0);
+        _displayedPlaces.sort((a, b) => (b.sampleUnggahan.id ?? 0).compareTo(a.sampleUnggahan.id ?? 0));
       } else if (_selectedFilter == 1) {
         // Populer - sort by post count desc
         _displayedPlaces.sort((a, b) => b.postCount.compareTo(a.postCount));
@@ -209,15 +216,18 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(20),
+                    GestureDetector(
+                      onTap: _showFilterModal,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: _minRatingFilter > 0 ? const Color(0xFF4AA5A6) : Colors.white,
+                          border: Border.all(color: _minRatingFilter > 0 ? const Color(0xFF4AA5A6) : Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Icon(Icons.tune, color: _minRatingFilter > 0 ? Colors.white : Colors.black87, size: 18),
                       ),
-                      child: const Icon(Icons.tune, color: Colors.black87, size: 18),
                     ),
                     _buildFilterChip("Terbaru", 0),
                     _buildFilterChip("Populer", 1),
@@ -461,6 +471,136 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
                 )
             ),
         ),
+    );
+  }
+
+  void _showFilterModal() {
+    double tempMinRating = _minRatingFilter;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20, right: 20, top: 12,
+                bottom: MediaQuery.of(context).padding.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Drag handle
+                  Center(
+                    child: Container(
+                      width: 40, height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Filter Pencarian",
+                        style: TextStyle(fontFamily: 'Inter', fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.black87),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Minimal Rating",
+                    style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      _buildRatingChip("Semua", 0.0, tempMinRating, (val) => setModalState(() => tempMinRating = val)),
+                      _buildRatingChip("3.0+", 3.0, tempMinRating, (val) => setModalState(() => tempMinRating = val)),
+                      _buildRatingChip("4.0+", 4.0, tempMinRating, (val) => setModalState(() => tempMinRating = val)),
+                      _buildRatingChip("4.5+", 4.5, tempMinRating, (val) => setModalState(() => tempMinRating = val)),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _minRatingFilter = tempMinRating;
+                        });
+                        _applyFilter();
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4AA5A6),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text("Terapkan", style: TextStyle(fontFamily: 'Inter', fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600)),
+                    ),
+                  )
+                ],
+              ),
+            );
+          }
+        );
+      },
+    );
+  }
+
+  Widget _buildRatingChip(String label, double val, double currentVal, Function(double) onSelect) {
+    final isSelected = val == currentVal;
+    return GestureDetector(
+      onTap: () => onSelect(val),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF4AA5A6) : Colors.white,
+          border: Border.all(
+            color: isSelected ? const Color(0xFF4AA5A6) : Colors.grey.shade300,
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (val > 0) ...[
+              Icon(Icons.star, size: 16, color: isSelected ? Colors.white : Colors.orange),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+                fontFamily: 'Inter',
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
