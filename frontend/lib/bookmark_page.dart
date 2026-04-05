@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'models/unggahan.dart';
 import 'services/api_service.dart';
 import 'services/auth_state.dart';
-import 'search_overlay_page.dart';
-import 'place_detail_page.dart';
+import 'unggahan_detail_page.dart';
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 class BookmarkPage extends StatefulWidget {
@@ -451,18 +450,10 @@ class _BookmarkPageState extends State<BookmarkPage> {
       onTap: _isEditMode
           ? () => _toggleSelect(item.id!)
           : () {
-              final place = PlaceSummary(
-                placeName: item.placeName,
-                imagePath: item.imagePaths.isNotEmpty ? item.imagePaths.first : '',
-                postCount: 1,
-                averageRating: item.rating.toDouble(),
-                sampleUnggahan: item,
-                unggahans: [item],
-              );
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PlaceDetailPage(place: place),
+                  builder: (_) => UnggahanDetailPage(unggahan: item),
                 ),
               );
             },
