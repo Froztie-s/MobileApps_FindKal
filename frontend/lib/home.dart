@@ -107,10 +107,14 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _fetchUnggahans() async {
     try {
+      final user = AuthState.currentUser ?? {};
+      final currentUserUsername = user['username'] ?? '';
+      
       final data = await ApiService.fetchUnggahans();
       if (mounted) {
         setState(() {
-          _unggahans = data.map((j) => Unggahan.fromJson(j)).toList();
+          final allUnggahans = data.map((j) => Unggahan.fromJson(j)).toList();
+          _unggahans = allUnggahans.where((u) => u.usernameHandle.replaceAll('@', '') != currentUserUsername).toList();
           _loadingFeed = false;
         });
       }
