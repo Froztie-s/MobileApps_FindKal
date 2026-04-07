@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'services/auth_state.dart';
 import 'services/api_service.dart';
+import 'home.dart';
 
 class UnggahanPreviewPage extends StatefulWidget {
   final List<XFile> images;
@@ -27,35 +28,116 @@ class UnggahanPreviewPage extends StatefulWidget {
 }
 
 class _UnggahanPreviewPageState extends State<UnggahanPreviewPage> {
-  bool _isUploading = false;
+  Future<void> _uploadFn() async {
+    final userId = AuthState.currentUser?['id'] as int?;
+    if (userId == null) throw const ApiException('User tidak ditemukan.');
 
-  Future<void> _upload() async {
-    setState(() => _isUploading = true);
-    try {
-      final userId = AuthState.currentUser?['id'] as int?;
-      if (userId == null) throw const ApiException('User tidak ditemukan.');
+    await ApiService.uploadUnggahan(
+      userId: userId,
+      namaTempat: widget.locationName,
+      alamat: widget.address,
+      ulasan: widget.review,
+      rating: widget.rating,
+      budget: widget.budget,
+      imagePaths: widget.images.map((x) => x.path).toList(),
+    );
+  }
 
-      await ApiService.uploadUnggahan(
-        userId: userId,
-        namaTempat: widget.locationName,
-        alamat: widget.address,
-        ulasan: widget.review,
-        rating: widget.rating,
-        budget: widget.budget,
-        imagePaths: widget.images.map((x) => x.path).toList(),
-      );
-
-      if (!mounted) return;
-      Navigator.pop(context);
-      Navigator.pop(context);
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message, style: const TextStyle(fontFamily: 'Inter'))),
-      );
-    } finally {
-      if (mounted) setState(() => _isUploading = false);
-    }
+  void _showConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 16),
+                const Text(
+                  "Yakin untuk unggah\npostingan ini?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Ya, unggah
+                          Navigator.pop(dialogContext, true);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4AA5A6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text(
+                          "Ya, unggah",
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          // Batal
+                          Navigator.pop(dialogContext, false);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.red),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text(
+                          "Batal",
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ).then((confirmed) {
+      if (confirmed == true) {
+        // Go back to home page (index 2 for profile) and pass pending callback
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomePage(initialIndex: 2, pendingUpload: _uploadFn),
+          ),
+          (route) => false,
+        );
+      }
+    });
   }
 
   @override
@@ -160,19 +242,16 @@ class _UnggahanPreviewPageState extends State<UnggahanPreviewPage> {
           width: double.infinity,
           height: 48,
           child: ElevatedButton(
-            onPressed: _isUploading ? null : _upload,
+            onPressed: () => _showConfirmDialog(),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF9ACAD0),
-              disabledBackgroundColor: Colors.grey.shade300,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               elevation: 0,
             ),
-            child: _isUploading
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text(
-                    "Unggah",
-                    style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
+            child: const Text(
+              "Unggah",
+              style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
           ),
         ),
       ),

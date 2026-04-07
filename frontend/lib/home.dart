@@ -12,14 +12,17 @@ import 'services/api_service.dart';
 import 'ai_trip_plan_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final int initialIndex;
+  final Future<void> Function()? pendingUpload;
+
+  const HomePage({super.key, this.initialIndex = 0, this.pendingUpload});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   bool _hasUnreadNotification = true;
   List<Unggahan> _unggahans = [];
   bool _loadingFeed = true;
@@ -32,8 +35,72 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex;
     _requestLocationAndMove();
     _fetchUnggahans();
+    
+    if (widget.pendingUpload != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handlePendingUpload();
+      });
+    }
+  }
+
+  Future<void> _handlePendingUpload() async {
+    // Tampilkan snackbar loading (atau apa saja)
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final topMargin = MediaQuery.of(context).size.height - 180;
+
+    scaffoldMessenger.showSnackBar(
+      SnackBar(
+        content: Row(
+          children: const [
+            SizedBox(
+              width: 20, height: 20,
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+            ),
+            SizedBox(width: 16),
+            Text('Mengunggah postingan...', style: TextStyle(fontFamily: 'Inter')),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(bottom: topMargin, left: 16, right: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        duration: const Duration(days: 1), // Tahan sampai selesai
+      ),
+    );
+
+    try {
+      await widget.pendingUpload!();
+      scaffoldMessenger.hideCurrentSnackBar();
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Postingan kamu sudah berhasil ter-upload!',
+            style: TextStyle(fontFamily: 'Inter'),
+          ),
+          backgroundColor: const Color(0xFF4AA5A6),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(bottom: topMargin, left: 16, right: 16),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+      // Refresh list kalau ada
+      _fetchUnggahans();
+    } catch (e) {
+      scaffoldMessenger.hideCurrentSnackBar();
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengunggah: $e', style: const TextStyle(fontFamily: 'Inter')),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(bottom: topMargin, left: 16, right: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   Future<void> _fetchUnggahans() async {
@@ -137,10 +204,14 @@ class _HomePageState extends State<HomePage> {
   Widget _buildHomeContent() {
     return Stack(
       children: [
-        SingleChildScrollView(
-          child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+        RefreshIndicator(
+          onRefresh: _fetchUnggahans,
+          color: const Color(0xFF4AA5A6),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   // Top Bar
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
@@ -346,6 +417,7 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
+        ),
 
             // Floating Action Buttons on bottom right
             Positioned(
