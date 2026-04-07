@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 // Toggle this when switching between emulator and physical device
-const bool _usePhysicalDevice = true;
+const bool _usePhysicalDevice = false;
 
 String get _baseUrl {
   if (kIsWeb) return 'http://localhost:8000/api';

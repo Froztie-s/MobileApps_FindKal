@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'models/unggahan.dart';
 import 'services/api_service.dart';
@@ -56,8 +57,11 @@ class UnggahanDetailPage extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: Colors.grey.shade300,
+                  backgroundColor: Colors.grey.shade400,
                   backgroundImage: _getAvatarImage(),
+                  child: _getAvatarImage() == null
+                      ? const Icon(Icons.person, color: Colors.white, size: 24)
+                      : null,
                 ),
                 const SizedBox(width: 12),
                 Column(
@@ -181,13 +185,22 @@ class UnggahanDetailPage extends StatelessWidget {
 
   ImageProvider _imageProvider(String path) {
     if (path.startsWith('http')) return NetworkImage(path);
-    return AssetImage(path);
+    return FileImage(File(path));
   }
 
-  ImageProvider _getAvatarImage() {
-    if (unggahan.userAvatar != null) return _imageProvider(unggahan.userAvatar!);
-    if (unggahan.imagePaths.isNotEmpty) return _imageProvider(unggahan.imagePaths.first);
-    return const AssetImage('assets/images/logo.png');
+  ImageProvider? _getAvatarImage() {
+    final user = AuthState.currentUser ?? {};
+    final isCurrentUser = unggahan.usernameHandle.replaceAll('@', '') == user['username'];
+    
+    String? avatarSource = unggahan.userAvatar;
+    if (isCurrentUser && user['profile_photo'] != null) {
+      avatarSource = user['profile_photo'] as String;
+    }
+
+    if (avatarSource != null && avatarSource.isNotEmpty) {
+      return _imageProvider(avatarSource);
+    }
+    return null;
   }
 
   Widget _buildClickableImage(BuildContext context, int index, {double? width, double? height}) {

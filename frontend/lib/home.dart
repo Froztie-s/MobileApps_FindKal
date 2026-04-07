@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'services/auth_state.dart';
 import 'map_page.dart';
 import 'search_overlay_page.dart';
 import 'buat_unggahan.dart';
@@ -12,14 +14,17 @@ import 'services/api_service.dart';
 import 'ai_trip_plan_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final int initialIndex;
+  final Future<void> Function()? pendingUpload;
+
+  const HomePage({super.key, this.initialIndex = 0, this.pendingUpload});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   bool _hasUnreadNotification = true;
   List<Unggahan> _unggahans = [];
   bool _loadingFeed = true;
@@ -32,16 +37,84 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex;
     _requestLocationAndMove();
     _fetchUnggahans();
+    
+    if (widget.pendingUpload != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handlePendingUpload();
+      });
+    }
+  }
+
+  Future<void> _handlePendingUpload() async {
+    // Tampilkan snackbar loading (atau apa saja)
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final topMargin = MediaQuery.of(context).size.height - 180;
+
+    scaffoldMessenger.showSnackBar(
+      SnackBar(
+        content: Row(
+          children: const [
+            SizedBox(
+              width: 20, height: 20,
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+            ),
+            SizedBox(width: 16),
+            Text('Mengunggah postingan...', style: TextStyle(fontFamily: 'Inter')),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(bottom: topMargin, left: 16, right: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        duration: const Duration(days: 1), // Tahan sampai selesai
+      ),
+    );
+
+    try {
+      await widget.pendingUpload!();
+      scaffoldMessenger.hideCurrentSnackBar();
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Postingan kamu sudah berhasil ter-upload!',
+            style: TextStyle(fontFamily: 'Inter'),
+          ),
+          backgroundColor: const Color(0xFF4AA5A6),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(bottom: topMargin, left: 16, right: 16),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+      // Refresh list kalau ada
+      _fetchUnggahans();
+    } catch (e) {
+      scaffoldMessenger.hideCurrentSnackBar();
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengunggah: $e', style: const TextStyle(fontFamily: 'Inter')),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(bottom: topMargin, left: 16, right: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   Future<void> _fetchUnggahans() async {
     try {
+      final user = AuthState.currentUser ?? {};
+      final currentUserUsername = user['username'] ?? '';
+      
       final data = await ApiService.fetchUnggahans();
       if (mounted) {
         setState(() {
-          _unggahans = data.map((j) => Unggahan.fromJson(j)).toList();
+          final allUnggahans = data.map((j) => Unggahan.fromJson(j)).toList();
+          _unggahans = allUnggahans.where((u) => u.usernameHandle.replaceAll('@', '') != currentUserUsername).toList();
           _loadingFeed = false;
         });
       }
@@ -137,10 +210,14 @@ class _HomePageState extends State<HomePage> {
   Widget _buildHomeContent() {
     return Stack(
       children: [
-        SingleChildScrollView(
-          child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+        RefreshIndicator(
+          onRefresh: _fetchUnggahans,
+          color: const Color(0xFF4AA5A6),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   // Top Bar
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
@@ -346,6 +423,7 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
+        ),
 
             // Floating Action Buttons on bottom right
             Positioned(
@@ -379,6 +457,23 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildExplorasiCard(Unggahan unggahan) {
+    final user = AuthState.currentUser ?? {};
+    final isCurrentUser = unggahan.usernameHandle.replaceAll('@', '') == user['username'];
+    
+    String? avatarSource = unggahan.userAvatar;
+    if (isCurrentUser && user['profile_photo'] != null) {
+      avatarSource = user['profile_photo'] as String;
+    }
+
+    ImageProvider? avatarProvider;
+    if (avatarSource != null && avatarSource.isNotEmpty) {
+      if (avatarSource.startsWith('http')) {
+        avatarProvider = NetworkImage(avatarSource);
+      } else {
+        avatarProvider = FileImage(File(avatarSource));
+      }
+    }
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -406,8 +501,9 @@ class _HomePageState extends State<HomePage> {
                   CircleAvatar(
                     radius: 12,
                     backgroundColor: Colors.grey.shade400,
-                    backgroundImage: unggahan.imagePaths.isNotEmpty
-                        ? NetworkImage(unggahan.imagePaths.first)
+                    backgroundImage: avatarProvider,
+                    child: avatarProvider == null
+                        ? const Icon(Icons.person, size: 16, color: Colors.white)
                         : null,
                   ),
                   const SizedBox(width: 8),
