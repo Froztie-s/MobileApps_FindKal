@@ -11,6 +11,8 @@ from .views import (
     UpdateProfileView,
     UnggahanListCreateView,
     UnggahanDetailView,
+    BookmarkListCreateView,
+    BookmarkDeleteView,
 )
 
 urlpatterns = [
@@ -25,4 +27,6 @@ urlpatterns = [
     path("password-reset/confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
     path("unggahan/", UnggahanListCreateView.as_view(), name="unggahan-list-create"),
     path("unggahan/<int:pk>/", UnggahanDetailView.as_view(), name="unggahan-detail"),
+    path("bookmarks/", BookmarkListCreateView.as_view(), name="bookmark-list-create"),
+    path("bookmarks/<int:unggahan_id>/", BookmarkDeleteView.as_view(), name="bookmark-delete"),
 ]

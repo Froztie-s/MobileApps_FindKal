@@ -198,3 +198,16 @@ class UnggahanImage(models.Model):
 
     def __str__(self):
         return f"Image {self.order} for {self.unggahan}"
+
+
+class Bookmark(models.Model):
+    user     = models.ForeignKey(User, on_delete=models.CASCADE, related_name="bookmarks")
+    unggahan = models.ForeignKey(Unggahan, on_delete=models.CASCADE, related_name="bookmarked_by")
+    saved_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "unggahan")
+        ordering = ["-saved_at"]
+
+    def __str__(self):
+        return f"{self.user.username} → {self.unggahan.nama_tempat}"

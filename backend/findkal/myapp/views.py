@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import User, EmailVerification, PasswordResetToken, PendingEmailVerification, Unggahan, UnggahanImage
+from .models import User, EmailVerification, PasswordResetToken, PendingEmailVerification, Unggahan, UnggahanImage, Bookmark
 
 
 def _send_otp_email(email, code):
@@ -616,6 +616,54 @@ class UnggahanDetailView(APIView):
             img.image.delete(save=False)
         unggahan.delete()
         return Response({"detail": "Unggahan berhasil dihapus."}, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# Bookmark endpoints
+# GET    /api/bookmarks/?user_id=X  — list all bookmarks for a user
+# POST   /api/bookmarks/            — body: {user_id, unggahan_id}
+# DELETE /api/bookmarks/<unggahan_id>/?user_id=X — remove bookmark
+# ---------------------------------------------------------------------------
+class BookmarkListCreateView(APIView):
+    def get(self, request):
+        user_id = request.query_params.get("user_id")
+        if not user_id:
+            return Response({"error": "user_id wajib diisi."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User tidak ditemukan."}, status=status.HTTP_404_NOT_FOUND)
+        bookmarks = Bookmark.objects.filter(user=user).select_related("unggahan__user").prefetch_related("unggahan__images")
+        return Response([_serialize_unggahan(b.unggahan, request) for b in bookmarks])
+
+    def post(self, request):
+        user_id = request.data.get("user_id")
+        unggahan_id = request.data.get("unggahan_id")
+        if not user_id or not unggahan_id:
+            return Response({"error": "user_id dan unggahan_id wajib diisi."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User tidak ditemukan."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            unggahan = Unggahan.objects.get(id=unggahan_id)
+        except Unggahan.DoesNotExist:
+            return Response({"error": "Unggahan tidak ditemukan."}, status=status.HTTP_404_NOT_FOUND)
+        _, created = Bookmark.objects.get_or_create(user=user, unggahan=unggahan)
+        if not created:
+            return Response({"detail": "Sudah disimpan."}, status=status.HTTP_200_OK)
+        return Response({"detail": "Disimpan ke Markah."}, status=status.HTTP_201_CREATED)
+
+
+class BookmarkDeleteView(APIView):
+    def delete(self, request, unggahan_id):
+        user_id = request.data.get("user_id") or request.query_params.get("user_id")
+        if not user_id:
+            return Response({"error": "user_id wajib diisi."}, status=status.HTTP_400_BAD_REQUEST)
+        deleted, _ = Bookmark.objects.filter(user_id=user_id, unggahan_id=unggahan_id).delete()
+        if deleted:
+            return Response({"detail": "Dihapus dari Markah."}, status=status.HTTP_200_OK)
+        return Response({"error": "Bookmark tidak ditemukan."}, status=status.HTTP_404_NOT_FOUND)
 
 
 

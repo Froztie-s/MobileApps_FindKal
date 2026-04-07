@@ -372,10 +372,11 @@ class _AiTripPlanPageState extends State<AiTripPlanPage> {
               ),
             )
           else
-            DropdownButtonHideUnderline(
+            SizedBox(
+              height: 24,
+              child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 isExpanded: true,
-                isDense: true,
                 value: value,
                 hint: Text(
                   enabled ? 'Pilih $label' : '',
@@ -417,6 +418,7 @@ class _AiTripPlanPageState extends State<AiTripPlanPage> {
                     )
                     .toList(),
               ),
+            ),
             ),
         ],
       ),
