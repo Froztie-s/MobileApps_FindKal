@@ -478,8 +478,8 @@ class _HomePageState extends State<HomePage> {
                   CircleAvatar(
                     radius: 12,
                     backgroundColor: Colors.grey.shade400,
-                    backgroundImage: unggahan.imagePaths.isNotEmpty
-                        ? NetworkImage(unggahan.imagePaths.first)
+                    backgroundImage: unggahan.userAvatar != null && unggahan.userAvatar!.isNotEmpty
+                        ? NetworkImage(unggahan.userAvatar!)
                         : null,
                   ),
                   const SizedBox(width: 8),

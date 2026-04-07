@@ -37,11 +37,18 @@ class _ProfilePageState extends State<ProfilePage> {
     final bio = user['bio'] ?? "Belum ada bio";
 
     return SafeArea(
-      child: SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
+      child: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {});
+          await _fetchUserUnggahans();
+        },
+        color: const Color(0xFF4AA5A6),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
           // Top Action Icons
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -321,6 +328,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 40),
         ],
+      ),
       ),
       ),
     );
