@@ -14,21 +14,26 @@ class _AiTripDetailPageState extends State<AiTripDetailPage> {
     {
       'time': '06.00 AM',
       'title': 'Pemandangan Diatas Koja Cliff Goa Gozila',
-      'details': 'Tiket masuk: Rp15.000\nParkir: Rp5.000 - Rp10.000\nSewa Perahu: Rp20.000',
-      'imageUrl': 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=300&q=80',
+      'details':
+          'Tiket masuk: Rp15.000\nParkir: Rp5.000 - Rp10.000\nSewa Perahu: Rp20.000',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=300&q=80',
     },
     {
       'time': '11.00 AM',
       'title': 'Telang Garden Cafe Makanan Autentik Indonesia',
-      'details': 'Menu Utama (Ayam Pecak): Rp30.000 - Rp45.000\nMinuman Signature Telang: Rp10.000 - Rp15.000\nTotal per orang: Rp50.000 - Rp75.000',
-      'imageUrl': 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=300&q=80',
+      'details':
+          'Menu Utama (Ayam Pecak): Rp30.000 - Rp45.000\nMinuman Signature Telang: Rp10.000 - Rp15.000\nTotal per orang: Rp50.000 - Rp75.000',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=300&q=80',
     },
     {
       'time': '03.00 PM',
       'title': 'Broadway Alam Sutera Dari Alam ke New York Dalam 15 Menit',
       'details': 'Parkir: Rp5.000 - Rp10.000\nCamilan: Rp25.000 - Rp50.000',
-      'imageUrl': 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=300&q=80',
-    }
+      'imageUrl':
+          'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=300&q=80',
+    },
   ];
 
   void _editPlan() {
@@ -64,8 +69,12 @@ class _AiTripDetailPageState extends State<AiTripDetailPage> {
                 const SizedBox(height: 16),
                 ...List.generate(timelineItems.length, (index) {
                   final item = timelineItems[index];
-                  TextEditingController timeController = TextEditingController(text: item['time']);
-                  TextEditingController titleController = TextEditingController(text: item['title']);
+                  TextEditingController timeController = TextEditingController(
+                    text: item['time'],
+                  );
+                  TextEditingController titleController = TextEditingController(
+                    text: item['title'],
+                  );
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 24.0),
                     child: Column(
@@ -134,7 +143,13 @@ class _AiTripDetailPageState extends State<AiTripDetailPage> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: const Text('Simpan Perubahan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Simpan Perubahan',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -208,9 +223,10 @@ class _AiTripDetailPageState extends State<AiTripDetailPage> {
                         title: item['title'],
                         details: item['details'],
                         imageUrl: item['imageUrl'],
-                        isLast: index == timelineItems.length - 1,
+                        isLast: false, // Dots continue to the transport section
                       );
                     }),
+                    _buildTransportSection(),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -408,6 +424,219 @@ class _AiTripDetailPageState extends State<AiTripDetailPage> {
       ],
     );
   }
+
+  Widget _buildTransportSection() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Timeline dots continuation
+        Column(
+          children: [
+            const SizedBox(height: 4),
+            const Icon(Icons.circle, size: 10, color: Color(0xFFE0E0E0)),
+            ...List.generate(
+              15,
+              (index) => const Padding(
+                padding: EdgeInsets.only(top: 8.0),
+                child: Icon(Icons.circle, size: 6, color: Color(0xFFE0E0E0)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Bisa naik transportasi ini!',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF4AA5A6),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height:
+                    360, // Fixed height to allow right side scrolling while left sticks
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Left Side (Sticky)
+                    Expanded(
+                      flex: 11,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEAEAEA),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Rekomendasi transportasi',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTransportCard(
+                              icon: Icons.motorcycle,
+                              name: 'Motor',
+                              time: '40',
+                              isWhite: true,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildTransportCard(
+                              icon: Icons.directions_car,
+                              name: 'Mobil',
+                              time: '50',
+                              isWhite: true,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Right Side (Scrollable)
+                    Expanded(
+                      flex: 10,
+                      child: ListView(
+                        padding: EdgeInsets.zero,
+                        physics: const BouncingScrollPhysics(),
+                        children: [
+                          _buildTransportCard(
+                            icon: Icons.directions_car,
+                            name: 'Mobil',
+                            time: '50',
+                            isWhite: false,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildTransportCard(
+                            icon: Icons.motorcycle,
+                            name: 'Motor',
+                            time: '40',
+                            isWhite: false,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildTransportCard(
+                            icon: Icons.directions_transit,
+                            name: 'Kereta',
+                            time: '35',
+                            isWhite: false,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildTransportCard(
+                            icon: Icons.directions_bus,
+                            name: 'Bus',
+                            time: '55',
+                            isWhite: false,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildTransportCard(
+                            icon: Icons.directions_walk,
+                            name: 'Jalan kaki',
+                            time: '120',
+                            isWhite: false,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTransportCard({
+    required IconData icon,
+    required String name,
+    required String time,
+    required bool isWhite,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isWhite ? Colors.white : const Color(0xFFEAEAEA),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: isWhite ? const Color(0xFFF0F0F0) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 16, color: Colors.black87),
+                const SizedBox(width: 6),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Lama waktu tempuh:',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                time,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF4AA5A6),
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Text(
+                'Menit',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class MapPreviewCard extends StatelessWidget {
@@ -442,9 +671,8 @@ class MapPreviewCard extends StatelessWidget {
                   width: double.infinity,
                   height: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.grey[300],
-                  ),
+                  errorBuilder: (context, error, stackTrace) =>
+                      Container(color: Colors.grey[300]),
                 ),
                 // Subtle dark gradient overlay to improve readability
                 Container(
@@ -565,7 +793,9 @@ class MapPreviewCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: Image.network(
                 imageUrl,
                 height: 50,
@@ -579,7 +809,10 @@ class MapPreviewCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10.0,
+                vertical: 8.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -618,7 +851,8 @@ class _RoutePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF9CCCD0).withOpacity(0.9) // Soft Teal
+      ..color = const Color(0xFF9CCCD0)
+          .withOpacity(0.9) // Soft Teal
       ..strokeWidth = 3.5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -626,17 +860,21 @@ class _RoutePainter extends CustomPainter {
     final path = Path();
     // Marker 1 center
     path.moveTo(size.width * 0.25 + 7, 86 + 7);
-    
+
     // Curve down to Marker 2
     path.quadraticBezierTo(
-      size.width * 0.5, 95, 
-      size.width * 0.70 + 7, 136 + 7
+      size.width * 0.5,
+      95,
+      size.width * 0.70 + 7,
+      136 + 7,
     );
 
     // Curve down and left to Marker 3
     path.quadraticBezierTo(
-      size.width * 0.6, 200, 
-      size.width * 0.40 + 7, 226 + 7
+      size.width * 0.6,
+      200,
+      size.width * 0.40 + 7,
+      226 + 7,
     );
 
     canvas.drawPath(path, paint);

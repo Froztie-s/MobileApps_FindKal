@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'ai_trip_plan_page.dart';
 
-class TripPlanSelectionPage extends StatelessWidget {
+List<Map<String, dynamic>> globalTrips = [];
+
+class TripPlanSelectionPage extends StatefulWidget {
   const TripPlanSelectionPage({super.key});
 
+  @override
+  State<TripPlanSelectionPage> createState() => _TripPlanSelectionPageState();
+}
+
+class _TripPlanSelectionPageState extends State<TripPlanSelectionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,13 +43,14 @@ class TripPlanSelectionPage extends StatelessWidget {
 
               // "Buat Perjalanan" Card
               GestureDetector(
-                onTap: () {
-                  Navigator.push(
+                onTap: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const AiTripPlanPage(),
                     ),
                   );
+                  setState(() {});
                 },
                 child: Container(
                   height: 180,
@@ -97,7 +105,24 @@ class TripPlanSelectionPage extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Dummy "Perjalananmu" List Item
-              _buildTripCard(),
+              if (globalTrips.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 20.0),
+                  child: Center(
+                    child: Text(
+                      'Belum ada rencana perjalanan',
+                      style: TextStyle(fontFamily: 'Inter', color: Colors.grey),
+                    ),
+                  ),
+                )
+              else
+                ...globalTrips.map(
+                  (trip) => _buildTripCard(
+                    trip['name'],
+                    trip['duration'],
+                    trip['imageUrl'],
+                  ),
+                ),
               const SizedBox(height: 32),
             ],
           ),
@@ -106,8 +131,9 @@ class TripPlanSelectionPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTripCard() {
+  Widget _buildTripCard(String title, String duration, String imageUrl) {
     return Container(
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -127,12 +153,12 @@ class TripPlanSelectionPage extends StatelessWidget {
           Container(
             height: 140,
             width: double.infinity,
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
               image: DecorationImage(
-                image: NetworkImage(
-                  'https://images.unsplash.com/photo-1596422846543-74c6eb0809b6?auto=format&fit=crop&w=800&q=80',
-                ),
+                image: NetworkImage(imageUrl),
                 fit: BoxFit.cover,
               ),
             ),
@@ -143,9 +169,9 @@ class TripPlanSelectionPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'My trip my advanture',
-                  style: TextStyle(
+                Text(
+                  title,
+                  style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -155,9 +181,9 @@ class TripPlanSelectionPage extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      '1 days',
-                      style: TextStyle(
+                    Text(
+                      '$duration hari',
+                      style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 14,
                         color: Colors.grey,

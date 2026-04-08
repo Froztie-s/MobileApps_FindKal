@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'ai_trip_detail_page.dart';
+import 'trip_plan_selection_page.dart';
 
 const String _apiBase = 'https://api-regional-indonesia.vercel.app/api';
 
@@ -205,13 +206,22 @@ class _AiTripPlanPageState extends State<AiTripPlanPage> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
+                      final title = _nameController.text.isNotEmpty
+                          ? _nameController.text
+                          : 'My Trip My Adventure';
+                      final duration = _durationController.text;
+                      
+                      globalTrips.add({
+                        'name': title,
+                        'duration': duration,
+                        'imageUrl': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80',
+                      });
+                      
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => AiTripDetailPage(
-                            tripName: _nameController.text.isNotEmpty
-                                ? _nameController.text
-                                : 'My Trip My Adventure',
+                            tripName: title,
                           ),
                         ),
                       );
