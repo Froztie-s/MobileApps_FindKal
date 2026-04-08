@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'services/auth_state.dart';
+import '../services/auth_state.dart';
 import 'edit_profile.dart';
-import 'settings_page.dart';
+import '../settingpage/settings_page.dart';
 import 'bookmark_page.dart';
-import 'models/unggahan.dart';
-import 'services/api_service.dart';
-import 'unggahan_detail_page.dart';
+import '../models/unggahan.dart';
+import '../services/api_service.dart';
+import '../unggahan/unggahan_detail_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});

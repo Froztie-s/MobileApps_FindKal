@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
-import 'services/api_service.dart';
-import 'models/unggahan.dart';
+import '../services/api_service.dart';
+import '../models/unggahan.dart';
 import 'place_detail_page.dart';
 
 class SearchOverlayPage extends StatefulWidget {

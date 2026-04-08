@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login.dart';
-import 'services/api_service.dart';
+import '../services/api_service.dart';
 
 class CreateNewPasswordPage extends StatefulWidget {
   final String resetToken;

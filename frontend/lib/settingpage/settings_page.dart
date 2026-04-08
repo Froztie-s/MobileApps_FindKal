@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'services/auth_state.dart';
+import '../services/auth_state.dart';
 import 'terms_conditions_page.dart';
 import 'privacy_notice_page.dart';
 import 'password_security_page.dart';

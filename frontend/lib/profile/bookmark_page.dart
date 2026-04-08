@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'models/unggahan.dart';
-import 'services/api_service.dart';
-import 'services/auth_state.dart';
-import 'unggahan_detail_page.dart';
+import '../models/unggahan.dart';
+import '../services/api_service.dart';
+import '../services/auth_state.dart';
+import '../unggahan/unggahan_detail_page.dart';
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 class BookmarkPage extends StatefulWidget {

@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import 'services/auth_state.dart';
-import 'map_page.dart';
+import '../../services/auth_state.dart';
+import '../map/map_page.dart';
 import 'search_overlay_page.dart';
-import 'buat_unggahan.dart';
-import 'profile.dart';
-import 'models/unggahan.dart';
-import 'unggahan_detail_page.dart';
-import 'services/api_service.dart';
-import 'ai_trip_plan_page.dart';
+import '../unggahan/buat_unggahan.dart';
+import '../profile/profile.dart';
+import '../../models/unggahan.dart';
+import '../unggahan/unggahan_detail_page.dart';
+import '../../services/api_service.dart';
+import '../ai_plan/ai_trip_plan_page.dart';
+import '../ai_plan/trip_plan_selection_page.dart';
 
 class HomePage extends StatefulWidget {
   final int initialIndex;
@@ -445,7 +446,7 @@ class _HomePageState extends State<HomePage> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const AiTripPlanPage()),
+                        MaterialPageRoute(builder: (context) => const TripPlanSelectionPage()),
                       );
                     },
                   ),

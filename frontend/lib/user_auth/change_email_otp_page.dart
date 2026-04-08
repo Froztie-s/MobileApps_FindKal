@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'services/auth_state.dart';
+import '../services/auth_state.dart';
 
 class ChangeEmailOtpPage extends StatefulWidget {
   final String newEmail;

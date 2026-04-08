@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'change_email_otp_page.dart';
+import '../user_auth/change_email_otp_page.dart';
 
 class ChangeEmailPage extends StatefulWidget {
   const ChangeEmailPage({super.key});

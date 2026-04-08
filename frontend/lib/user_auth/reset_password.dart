@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'enter_code.dart';
-import 'services/api_service.dart';
+import '../services/api_service.dart';
 
 class ResetPasswordPage extends StatefulWidget {
   const ResetPasswordPage({super.key});

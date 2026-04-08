@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'services/auth_state.dart';
+import '../services/auth_state.dart';
 import 'unggahan_preview_page.dart';
 
 class BuatUnggahanPage extends StatefulWidget {

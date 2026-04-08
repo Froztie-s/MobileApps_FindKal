@@ -2,10 +2,10 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // import for Clipboard
 import 'package:url_launcher/url_launcher.dart'; // import for url_launcher
-import 'models/unggahan.dart';
+import '../models/unggahan.dart';
 import 'search_overlay_page.dart';
-import 'unggahan_detail_page.dart';
-import 'map_direction_page.dart'; // import map direction page
+import '../unggahan/unggahan_detail_page.dart';
+import '../map/map_direction_page.dart'; // import map direction page
 
 class PlaceDetailPage extends StatefulWidget {
   final PlaceSummary place;

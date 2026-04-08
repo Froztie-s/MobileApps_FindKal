@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'login.dart';
-import 'services/api_service.dart';
+import '../services/api_service.dart';
 
 const String _apiBase = 'https://api-regional-indonesia.vercel.app/api';
 

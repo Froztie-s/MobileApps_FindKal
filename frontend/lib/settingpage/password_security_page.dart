@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'services/auth_state.dart';
+import '../services/auth_state.dart';
 import 'change_email_page.dart';
 
 class PasswordSecurityPage extends StatefulWidget {

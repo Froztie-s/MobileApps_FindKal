@@ -1,11 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'login.dart';
-import 'reset_password.dart';
-import 'register.dart';
-import 'home.dart';
-import 'notification.dart';
+import 'user_auth/login.dart';
+import 'user_auth/reset_password.dart';
+import 'user_auth/register.dart';
+import 'homepage/home.dart';
+import 'homepage/notification.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: ".env");

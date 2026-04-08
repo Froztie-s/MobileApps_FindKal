@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'models/unggahan.dart';
-import 'services/api_service.dart';
-import 'services/auth_state.dart';
+import '../../models/unggahan.dart';
+import '../../services/api_service.dart';
+import '../../services/auth_state.dart';
 
 class UnggahanDetailPage extends StatelessWidget {
   final Unggahan unggahan;
