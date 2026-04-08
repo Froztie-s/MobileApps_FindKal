@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../services/auth_state.dart';
 import 'terms_conditions_page.dart';
 import 'privacy_notice_page.dart';
 import 'password_security_page.dart';
+import 'survey_intro_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -36,7 +36,7 @@ class SettingsPage extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              AuthState.currentUser = null;
+              // TODO: clear session (tangani di backend/auth service)
               Navigator.pop(ctx);
               Navigator.pushNamedAndRemoveUntil(
                 context,
@@ -149,6 +149,31 @@ class SettingsPage extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const PrivacyNoticePage(),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 32),
+
+          // ── SURVEY WARGA LOKAL ───────────────────────────────────────
+          const Text(
+            'Komunitas',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF4AA5A6),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildMenuItem(
+            label: 'Survey Warga Lokal',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SurveyIntroPage(),
                 ),
               );
             },
