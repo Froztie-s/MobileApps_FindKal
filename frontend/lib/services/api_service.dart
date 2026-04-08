@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 // Toggle this when switching between emulator and physical device
-const bool _usePhysicalDevice = false;
+const bool _usePhysicalDevice = true;
 
 String get _baseUrl {
   if (kIsWeb) return 'http://localhost:8000/api';
-  if (_usePhysicalDevice) return 'http://192.168.18.15:8000/api';
+  if (_usePhysicalDevice) return 'http://${dotenv.env['ipaddress']}:8000/api';
   return 'http://10.0.2.2:8000/api'; // Android emulator
 }
 

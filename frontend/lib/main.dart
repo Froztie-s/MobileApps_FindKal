@@ -1,12 +1,14 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'login.dart';
 import 'reset_password.dart';
 import 'register.dart';
 import 'home.dart';
 import 'notification.dart';
 
-void main() {
+Future<void> main() async {
+  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 
