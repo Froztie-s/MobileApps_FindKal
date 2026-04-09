@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'ai_trip_detail_page.dart';
+import 'trip_plan_selection_page.dart';
 
 const String _apiBase = 'https://api-regional-indonesia.vercel.app/api';
 
@@ -151,10 +153,22 @@ class _AiTripPlanPageState extends State<AiTripPlanPage> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(24),
                         child: Image.network(
-                          'https://images.unsplash.com/photo-1596422846543-74c6eb0809b6?auto=format&fit=crop&w=800&q=80',
+                          'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80',
                           width: double.infinity,
                           height: 200,
                           fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: double.infinity,
+                              height: 200,
+                              color: Colors.grey.shade300,
+                              child: const Icon(
+                                Icons.broken_image,
+                                size: 50,
+                                color: Colors.grey,
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -192,7 +206,25 @@ class _AiTripPlanPageState extends State<AiTripPlanPage> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      // Navigate to details
+                      final title = _nameController.text.isNotEmpty
+                          ? _nameController.text
+                          : 'My Trip My Adventure';
+                      final duration = _durationController.text;
+                      
+                      globalTrips.add({
+                        'name': title,
+                        'duration': duration,
+                        'imageUrl': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80',
+                      });
+                      
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AiTripDetailPage(
+                            tripName: title,
+                          ),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF9CCCD0),
