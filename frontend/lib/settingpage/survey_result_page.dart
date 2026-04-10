@@ -1,55 +1,61 @@
 import 'package:flutter/material.dart';
 
 class SurveyResultPage extends StatelessWidget {
-  final int correctCount;
-  static const int _passing = 4;
-  static const int _total = 5;
+  final Map<String, dynamic> result;
 
-  const SurveyResultPage({super.key, required this.correctCount});
+  const SurveyResultPage({super.key, required this.result});
 
-  bool get _success => correctCount >= _passing;
+  bool get _success => result['passed'] == true;
+  int get _score => (result['score'] as int?) ?? 0;
+  int get _attemptsRemaining => (result['attempts_remaining'] as int?) ?? 0;
+  String? get _lockedUntil => result['locked_until'] as String?;
+
+  String get _failMessage {
+    if (_lockedUntil != null) {
+      final dt = DateTime.tryParse(_lockedUntil!);
+      final formatted = dt != null
+          ? '${dt.day}/${dt.month}/${dt.year} pukul ${dt.hour.toString().padLeft(2, '0')}.${dt.minute.toString().padLeft(2, '0')}'
+          : _lockedUntil!;
+      return 'Kamu menjawab $_score dari 5 pertanyaan dengan benar. '
+          'Kamu telah kehabisan percobaan. Coba lagi setelah $formatted.';
+    }
+    return 'Kamu menjawab $_score dari 5 pertanyaan dengan benar. '
+        'Minimal 4 jawaban benar diperlukan untuk menjadi warga lokal terverifikasi. '
+        'Sisa percobaan: $_attemptsRemaining.';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-ClipPath(
-  clipper: TopCurveClipper(),
-  child: Container(
-    height: 220,
-    width: double.infinity,
-    color: const Color(0xFF4AA5A6),
-  ),
-),
-
-Positioned(
-  top: -20,
-  left: 0,
-  right: 0,
-  child: ClipPath(
-    clipper: TopCurveClipper(),
-    child: Container(
-      height: 240,
-      color: const Color(0xFF9ACAD0).withOpacity(0.4),
-    ),
-  ),
-),
-
+          ClipPath(
+            clipper: TopCurveClipper(),
+            child: Container(
+              height: 220,
+              width: double.infinity,
+              color: const Color(0xFF4AA5A6),
+            ),
+          ),
+          Positioned(
+            top: -20,
+            left: 0,
+            right: 0,
+            child: ClipPath(
+              clipper: TopCurveClipper(),
+              child: Container(
+                height: 240,
+                color: const Color(0xFF9ACAD0).withValues(alpha: 0.4),
+              ),
+            ),
+          ),
           SafeArea(
             child: Column(
               children: [
                 const Spacer(flex: 2),
-
-                // Ilustrasi
                 _success ? _buildSuccessIllustration() : _buildFailIllustration(),
-
                 const SizedBox(height: 36),
-
-                // Judul
                 Text(
                   _success ? 'Verifikasi Berhasil!' : 'Verifikasi Gagal',
                   style: TextStyle(
@@ -59,16 +65,13 @@ Positioned(
                     color: _success ? Colors.black87 : Colors.red.shade600,
                   ),
                 ),
-
                 const SizedBox(height: 12),
-
-                // Deskripsi
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 40),
                   child: Text(
                     _success
                         ? 'Identitas kamu sudah terverifikasi. Sekarang kamu punya akses penuh untuk berbagi moment.'
-                        : 'Kamu menjawab $correctCount dari $_total pertanyaan dengan benar. Minimal $_passing jawaban benar diperlukan untuk menjadi warga lokal terverifikasi.',
+                        : _failMessage,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Inter',
@@ -78,10 +81,7 @@ Positioned(
                     ),
                   ),
                 ),
-
                 const Spacer(flex: 3),
-
-                // Tombol
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
                   child: SizedBox(
@@ -89,7 +89,6 @@ Positioned(
                     height: 52,
                     child: ElevatedButton(
                       onPressed: () {
-                        // TODO: backend tandai verifikasi jika _success
                         Navigator.pushNamedAndRemoveUntil(
                           context,
                           '/home',
@@ -123,7 +122,6 @@ Positioned(
     );
   }
 
-  // ── Ilustrasi berhasil — kartu ID + badge centang ──────────────────────────
   Widget _buildSuccessIllustration() {
     return SizedBox(
       width: 160,
@@ -131,7 +129,6 @@ Positioned(
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Kartu ID (gelap teal)
           Positioned(
             bottom: 0,
             right: 0,
@@ -144,7 +141,6 @@ Positioned(
               ),
               child: Stack(
                 children: [
-                  // Garis horizontal putih di kiri
                   Positioned(
                     left: 14,
                     top: 24,
@@ -152,24 +148,25 @@ Positioned(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                            width: 44,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.4),
-                              borderRadius: BorderRadius.circular(3),
-                            )),
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
                         const SizedBox(height: 6),
                         Container(
-                            width: 32,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.25),
-                              borderRadius: BorderRadius.circular(3),
-                            )),
+                          width: 32,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.25),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  // Silhouette orang di kanan
                   Positioned(
                     right: 12,
                     top: 10,
@@ -179,7 +176,7 @@ Positioned(
                           width: 26,
                           height: 26,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
+                            color: Colors.white.withValues(alpha: 0.3),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -188,7 +185,7 @@ Positioned(
                           width: 34,
                           height: 20,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: const BorderRadius.only(
                               topLeft: Radius.circular(17),
                               topRight: Radius.circular(17),
@@ -202,8 +199,6 @@ Positioned(
               ),
             ),
           ),
-
-          // Badge centang teal
           Positioned(
             top: 0,
             left: 0,
@@ -216,17 +211,13 @@ Positioned(
                 border: Border.all(color: Colors.white, width: 3),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF4AA5A6).withOpacity(0.3),
+                    color: const Color(0xFF4AA5A6).withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.check_rounded,
-                color: Colors.white,
-                size: 30,
-              ),
+              child: const Icon(Icons.check_rounded, color: Colors.white, size: 30),
             ),
           ),
         ],
@@ -234,7 +225,6 @@ Positioned(
     );
   }
 
-  // ── Ilustrasi gagal ────────────────────────────────────────────────────────
   Widget _buildFailIllustration() {
     return Container(
       width: 110,
@@ -244,40 +234,20 @@ Positioned(
         shape: BoxShape.circle,
         border: Border.all(color: Colors.red.shade200, width: 2),
       ),
-      child: Icon(
-        Icons.close_rounded,
-        size: 56,
-        color: Colors.red.shade400,
-      ),
+      child: Icon(Icons.close_rounded, size: 56, color: Colors.red.shade400),
     );
   }
 }
+
 class TopCurveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     Path path = Path();
-
     path.lineTo(0, size.height - 60);
-
-    // curve kiri
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height,
-      size.width * 0.5,
-      size.height - 40,
-    );
-
-    // curve kanan
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height - 80,
-      size.width,
-      size.height - 50,
-    );
-
+    path.quadraticBezierTo(size.width * 0.25, size.height, size.width * 0.5, size.height - 40);
+    path.quadraticBezierTo(size.width * 0.75, size.height - 80, size.width, size.height - 50);
     path.lineTo(size.width, 0);
     path.close();
-
     return path;
   }
 

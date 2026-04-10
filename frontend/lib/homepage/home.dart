@@ -13,6 +13,7 @@ import '../unggahan/unggahan_detail_page.dart';
 import '../../services/api_service.dart';
 import '../ai_plan/ai_trip_plan_page.dart';
 import '../ai_plan/trip_plan_selection_page.dart';
+import '../settingpage/survey_intro_page.dart';
 
 class HomePage extends StatefulWidget {
   final int initialIndex;
@@ -122,6 +123,59 @@ class _HomePageState extends State<HomePage> {
     } catch (_) {
       if (mounted) setState(() => _loadingFeed = false);
     }
+  }
+
+  void _showVerificationRequiredSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: 24),
+            const Icon(Icons.lock_outline_rounded, size: 48, color: Color(0xFF4AA5A6)),
+            const SizedBox(height: 16),
+            const Text(
+              'Verifikasi Warga Lokal Diperlukan',
+              style: TextStyle(fontFamily: 'Inter', fontSize: 17, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Hanya warga lokal terverifikasi yang dapat mengunggah postingan. Selesaikan survei singkat untuk mendapatkan akses.',
+              style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: Colors.grey.shade600, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SurveyIntroPage()));
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4AA5A6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  elevation: 0,
+                ),
+                child: const Text('Mulai Verifikasi', style: TextStyle(fontFamily: 'Inter', fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _openSearch() {
@@ -434,6 +488,10 @@ class _HomePageState extends State<HomePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildCircularButton(icon: Icons.add, size: 28, onTap: () {
+                    if (!AuthState.isWargaLokal) {
+                      _showVerificationRequiredSheet();
+                      return;
+                    }
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const BuatUnggahanPage()),

@@ -341,6 +341,51 @@ class ApiService {
     }
   }
 
+  /// Fetch 5 survey questions from the backend
+  static Future<List<Map<String, dynamic>>> fetchSurveyQuestions() async {
+    try {
+      final response = await http
+          .get(Uri.parse('$_baseUrl/survey/questions/'))
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final list = jsonDecode(response.body) as List;
+        return list.cast<Map<String, dynamic>>();
+      }
+      throw ApiException('Gagal memuat pertanyaan.');
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tidak dapat terhubung ke server: $e');
+    }
+  }
+
+  /// Submit survey answers. Returns result map with keys:
+  /// passed, score, attempts_remaining?, locked_until?, already_verified?
+  static Future<Map<String, dynamic>> submitSurveyAnswers({
+    required int userId,
+    required List<Map<String, dynamic>> answers,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/survey/submit/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'user_id': userId, 'answers': answers}),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+      // 403 = locked out
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      throw ApiException(body['error'] ?? 'Gagal mengirim jawaban.');
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tidak dapat terhubung ke server: $e');
+    }
+  }
+
   /// Remove a bookmark
   static Future<void> removeBookmark(int userId, int unggahanId) async {
     try {

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import '../services/auth_state.dart';
 import 'survey_result_page.dart';
 
 class SurveyLoadingPage extends StatefulWidget {
-  final int correctCount;
-  const SurveyLoadingPage({super.key, required this.correctCount});
+  final List<Map<String, dynamic>> answers;
+  const SurveyLoadingPage({super.key, required this.answers});
 
   @override
   State<SurveyLoadingPage> createState() => _SurveyLoadingPageState();
@@ -35,17 +37,46 @@ class _SurveyLoadingPageState extends State<SurveyLoadingPage>
 
     _clock = Tween<double>(begin: 0, end: 1).animate(_clockCtrl);
 
-    Future.delayed(const Duration(milliseconds: 2800), () {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                SurveyResultPage(correctCount: widget.correctCount),
-          ),
-        );
+    _submitAndNavigate();
+  }
+
+  Future<void> _submitAndNavigate() async {
+    // Run API call and minimum display time in parallel
+    final userId = AuthState.currentUser?['id'] as int?;
+
+    final futures = await Future.wait([
+      Future.delayed(const Duration(milliseconds: 2800)),
+      userId != null
+          ? ApiService.submitSurveyAnswers(userId: userId, answers: widget.answers)
+              .catchError((e) => <String, dynamic>{'passed': false, 'score': 0, 'error': e.toString()})
+          : Future.value(<String, dynamic>{'passed': false, 'score': 0}),
+    ]);
+
+    final result = futures[1] as Map<String, dynamic>;
+
+    // Update local auth state if passed
+    if (result['passed'] == true && AuthState.currentUser != null) {
+      AuthState.currentUser!['is_warga_lokal'] = true;
+    }
+    // Update attempt info in local state
+    if (AuthState.currentUser != null) {
+      if (result['locked_until'] != null) {
+        AuthState.currentUser!['locked_until'] = result['locked_until'];
       }
-    });
+      if (result['attempts_remaining'] != null) {
+        final used = 3 - (result['attempts_remaining'] as int);
+        AuthState.currentUser!['attempts_used'] = used;
+      }
+    }
+
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SurveyResultPage(result: result),
+        ),
+      );
+    }
   }
 
   @override
@@ -57,47 +88,39 @@ class _SurveyLoadingPageState extends State<SurveyLoadingPage>
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Blob teal atas
-          // ── BACKGROUND BLOB (LAYER BELAKANG) ───────────────────────
-ClipPath(
-  clipper: TopCurveClipper(),
-  child: Container(
-    height: 220,
-    width: double.infinity,
-    color: const Color(0xFF4AA5A6),
-  ),
-),
-
-Positioned(
-  top: -20,
-  left: 0,
-  right: 0,
-  child: ClipPath(
-    clipper: TopCurveClipper(),
-    child: Container(
-      height: 240,
-      color: const Color(0xFF9ACAD0).withOpacity(0.4),
-    ),
-  ),
-),
-
+          ClipPath(
+            clipper: TopCurveClipper(),
+            child: Container(
+              height: 220,
+              width: double.infinity,
+              color: const Color(0xFF4AA5A6),
+            ),
+          ),
+          Positioned(
+            top: -20,
+            left: 0,
+            right: 0,
+            child: ClipPath(
+              clipper: TopCurveClipper(),
+              child: Container(
+                height: 240,
+                color: const Color(0xFF9ACAD0).withValues(alpha: 0.4),
+              ),
+            ),
+          ),
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Ilustrasi jam pasir + jam
                 SizedBox(
                   width: 140,
                   height: 130,
                   child: Stack(
                     children: [
-                      // Jam pasir (pulse)
                       AnimatedBuilder(
                         animation: _pulse,
                         builder: (_, child) => Transform.scale(
@@ -110,11 +133,10 @@ Positioned(
                           child: Icon(
                             Icons.hourglass_bottom_rounded,
                             size: 88,
-                            color: const Color(0xFF9ACAD0).withOpacity(0.75),
+                            color: const Color(0xFF9ACAD0).withValues(alpha: 0.75),
                           ),
                         ),
                       ),
-                      // Jam (rotate)
                       Positioned(
                         bottom: 0,
                         right: 0,
@@ -134,9 +156,7 @@ Positioned(
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 36),
-
                 const Text(
                   'Verifikasi sedang memuat..',
                   style: TextStyle(
@@ -146,9 +166,7 @@ Positioned(
                     color: Colors.black87,
                   ),
                 ),
-
                 const SizedBox(height: 10),
-
                 Text(
                   'Proses verifikasi mungkin membutuhkan\nwaktu hingga 2 menit',
                   textAlign: TextAlign.center,
@@ -172,28 +190,11 @@ class TopCurveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     Path path = Path();
-
     path.lineTo(0, size.height - 60);
-
-    // curve kiri
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height,
-      size.width * 0.5,
-      size.height - 40,
-    );
-
-    // curve kanan
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height - 80,
-      size.width,
-      size.height - 50,
-    );
-
+    path.quadraticBezierTo(size.width * 0.25, size.height, size.width * 0.5, size.height - 40);
+    path.quadraticBezierTo(size.width * 0.75, size.height - 80, size.width, size.height - 50);
     path.lineTo(size.width, 0);
     path.close();
-
     return path;
   }
 

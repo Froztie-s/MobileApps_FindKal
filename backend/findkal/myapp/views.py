@@ -7,7 +7,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import User, EmailVerification, PasswordResetToken, PendingEmailVerification, Unggahan, UnggahanImage, Bookmark
+import random as _random
+from django.utils import timezone as _tz
+import datetime as _dt
+from .models import (
+    User, EmailVerification, PasswordResetToken, PendingEmailVerification,
+    Unggahan, UnggahanImage, Bookmark,
+    SurveyQuestion, SurveyAttempt, SURVEY_MAX_ATTEMPTS, SURVEY_LOCKOUT_DAYS,
+)
 
 
 def _send_otp_email(email, code):
@@ -487,10 +494,18 @@ class LoginView(APIView):
                 pass
 
         if user:
-            if user.role != "user":
+            if user.role not in ("user", "local"):
                 return Response({"error": "Akun tidak memiliki akses yang sesuai."}, status=status.HTTP_403_FORBIDDEN)
             if user.check_password(password):
                 photo_url = request.build_absolute_uri(user.profile_photo.url) if user.profile_photo else None
+                # Fetch attempt info for the app
+                try:
+                    attempt = user.survey_attempt
+                    attempts_used = attempt.attempts_used
+                    locked_until = attempt.locked_until.isoformat() if attempt.locked_until else None
+                except SurveyAttempt.DoesNotExist:
+                    attempts_used = 0
+                    locked_until = None
                 return Response({
                     "message": "Berhasil masuk",
                     "user": {
@@ -500,6 +515,9 @@ class LoginView(APIView):
                         "name": user.name,
                         "bio": user.bio,
                         "profile_photo": photo_url,
+                        "is_warga_lokal": user.role == "local",
+                        "attempts_used": attempts_used,
+                        "locked_until": locked_until,
                     }
                 }, status=status.HTTP_200_OK)
             else:
@@ -664,6 +682,97 @@ class BookmarkDeleteView(APIView):
         if deleted:
             return Response({"detail": "Dihapus dari Markah."}, status=status.HTTP_200_OK)
         return Response({"error": "Bookmark tidak ditemukan."}, status=status.HTTP_404_NOT_FOUND)
+
+
+# ---------------------------------------------------------------------------
+# Survey endpoints
+# GET  /api/survey/questions/  — returns 5 questions (4 fixed demo + 1 random)
+# POST /api/survey/submit/     — body: {user_id, answers: [{question_id, selected_index}]}
+# ---------------------------------------------------------------------------
+class SurveyQuestionsView(APIView):
+    def get(self, request):
+        demo_qs = list(SurveyQuestion.objects.filter(is_demo=True))
+        other_qs = list(SurveyQuestion.objects.filter(is_demo=False))
+
+        selected = list(demo_qs)
+        remaining_slots = max(0, 5 - len(selected))
+        if remaining_slots > 0 and other_qs:
+            selected += _random.sample(other_qs, min(remaining_slots, len(other_qs)))
+
+        _random.shuffle(selected)
+
+        data = [
+            {
+                "id": q.id,
+                "question_text": q.question_text,
+                "options": [q.option_a, q.option_b, q.option_c, q.option_d],
+            }
+            for q in selected
+        ]
+        return Response(data)
+
+
+class SurveySubmitView(APIView):
+    def post(self, request):
+        user_id = request.data.get("user_id")
+        answers = request.data.get("answers", [])
+
+        if not user_id:
+            return Response({"error": "user_id wajib diisi."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User tidak ditemukan."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Already verified
+        if user.role == "local":
+            return Response({"passed": True, "score": 5, "already_verified": True})
+
+        attempt, _ = SurveyAttempt.objects.get_or_create(user=user)
+
+        # Check lockout
+        if attempt.is_locked():
+            return Response(
+                {"error": "Akun dikunci sementara.", "locked_until": attempt.locked_until.isoformat()},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Score answers
+        score = 0
+        for ans in answers:
+            try:
+                q = SurveyQuestion.objects.get(id=ans["question_id"])
+                if int(ans["selected_index"]) == q.correct_index:
+                    score += 1
+            except (SurveyQuestion.DoesNotExist, KeyError, ValueError):
+                pass
+
+        attempt.attempts_used += 1
+        attempt.last_attempt_at = _tz.now()
+
+        if score >= 4:
+            user.role = "local"
+            user.save(update_fields=["role"])
+            attempt.save()
+            return Response({"passed": True, "score": score})
+
+        if attempt.attempts_used >= SURVEY_MAX_ATTEMPTS:
+            attempt.locked_until = _tz.now() + _dt.timedelta(days=SURVEY_LOCKOUT_DAYS)
+            attempt.save()
+            return Response({
+                "passed": False,
+                "score": score,
+                "locked_until": attempt.locked_until.isoformat(),
+                "attempts_remaining": 0,
+            })
+
+        attempt.save()
+        return Response({
+            "passed": False,
+            "score": score,
+            "attempts_remaining": SURVEY_MAX_ATTEMPTS - attempt.attempts_used,
+        })
 
 
 

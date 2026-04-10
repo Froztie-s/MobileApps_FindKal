@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_state.dart';
 import 'survey_question_page.dart';
 
 class SurveyIntroPage extends StatelessWidget {
@@ -6,7 +7,19 @@ class SurveyIntroPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final isVerified = AuthState.isWargaLokal;
+    final isLocked = AuthState.isLockedOut;
+    final attemptsUsed = AuthState.attemptsUsed;
+    final attemptsRemaining = (3 - attemptsUsed).clamp(0, 3);
+
+    String? lockedUntilFormatted;
+    if (isLocked && AuthState.lockedUntil != null) {
+      final dt = DateTime.tryParse(AuthState.lockedUntil!);
+      if (dt != null) {
+        lockedUntilFormatted =
+            '${dt.day}/${dt.month}/${dt.year} pukul ${dt.hour.toString().padLeft(2, '0')}.${dt.minute.toString().padLeft(2, '0')}';
+      }
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -93,16 +106,24 @@ Positioned(
 
                 const SizedBox(height: 44),
 
-                // Teks biru teal
+                // Status / deskripsi
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 36),
                   child: Text(
-                    'Untuk menjaga komunitas kita tetap aman dan bebas dari gangguan bot, kami butuh bantuanmu untuk menjawab 5 pertanyaan singkat tentang daerahmu.',
+                    isVerified
+                        ? 'Kamu sudah menjadi warga lokal terverifikasi. Nikmati akses penuh untuk berbagi tempat favoritmu!'
+                        : isLocked
+                            ? 'Kamu telah kehabisan percobaan. Coba lagi setelah $lockedUntilFormatted.'
+                            : 'Untuk menjaga komunitas kita tetap aman dan bebas dari gangguan bot, kami butuh bantuanmu untuk menjawab 5 pertanyaan singkat tentang daerahmu.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 14,
-                      color: Color(0xFF4AA5A6),
+                      color: isVerified
+                          ? const Color(0xFF4AA5A6)
+                          : isLocked
+                              ? Colors.red.shade400
+                              : const Color(0xFF4AA5A6),
                       height: 1.65,
                     ),
                   ),
@@ -110,40 +131,45 @@ Positioned(
 
                 const SizedBox(height: 16),
 
-                // Estimasi waktu
-                Text(
-                  'Estimasi waktu : 3 menit',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 13,
-                    color: Colors.grey.shade500,
+                if (!isVerified && !isLocked)
+                  Text(
+                    'Estimasi waktu : 3 menit  •  Sisa percobaan: $attemptsRemaining dari 3',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      color: Colors.grey.shade500,
+                    ),
                   ),
-                ),
 
                 const Spacer(flex: 3),
 
-                // Tombol
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
                   child: SizedBox(
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const SurveyQuestionPage()),
-                      ),
+                      onPressed: isVerified || isLocked
+                          ? null
+                          : () => Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const SurveyQuestionPage()),
+                              ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF9ACAD0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
+                        backgroundColor: isVerified
+                            ? Colors.green.shade400
+                            : const Color(0xFF9ACAD0),
+                        disabledBackgroundColor: Colors.grey.shade300,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        'Mulai verifikasi',
-                        style: TextStyle(
+                      child: Text(
+                        isVerified
+                            ? 'Sudah Terverifikasi ✓'
+                            : isLocked
+                                ? 'Akun Dikunci Sementara'
+                                : 'Mulai verifikasi',
+                        style: const TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
