@@ -11,7 +11,6 @@ import '../profile/profile.dart';
 import '../../models/unggahan.dart';
 import '../unggahan/unggahan_detail_page.dart';
 import '../../services/api_service.dart';
-import '../ai_plan/ai_trip_plan_page.dart';
 import '../ai_plan/trip_plan_selection_page.dart';
 
 class HomePage extends StatefulWidget {

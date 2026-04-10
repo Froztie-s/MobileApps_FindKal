@@ -401,7 +401,7 @@ class _MapSearchResultPageState extends State<MapSearchResultPage> {
                                   final result = await Navigator.push(
                                     context,
                                     PageRouteBuilder(
-                                      pageBuilder: (_, __, ___) =>
+                                      pageBuilder: (_, _, _) =>
                                           MapDirectionPage(
                                         destinationName:
                                             _selected!.displayName,

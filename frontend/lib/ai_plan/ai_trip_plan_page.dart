@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'ai_trip_detail_page.dart';
 import 'trip_plan_selection_page.dart';
+import 'ai_trip_theme_selection_page.dart';
 
 const String _apiBase = 'https://api-regional-indonesia.vercel.app/api';
 
@@ -367,20 +368,18 @@ class _AiTripPlanPageState extends State<AiTripPlanPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Start Loading
-                    setState(() {
-                      _isGenerating = true;
-                    });
-
-                    // Simulate AI Generation duration
-                    Future.delayed(const Duration(seconds: 3), () {
-                      if (mounted) {
-                        setState(() {
-                          _isGenerating = false;
-                          _isGenerated = true;
-                        });
-                      }
-                    });
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AiTripThemeSelectionPage(
+                          tripName: _nameController.text,
+                          duration: _durationController.text,
+                          province: _selectedProvince,
+                          city: _selectedCity,
+                          budget: _selectedBudget,
+                        ),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF9CCCD0),
@@ -391,7 +390,7 @@ class _AiTripPlanPageState extends State<AiTripPlanPage> {
                     elevation: 0,
                   ),
                   child: const Text(
-                    'Generate Rencana Perjalanan',
+                    'Lanjutkan',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 16,

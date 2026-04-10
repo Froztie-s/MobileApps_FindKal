@@ -50,7 +50,7 @@ class _MapPageState extends State<MapPage> {
     Navigator.push(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => MapSearchResultPage(query: query),
+        pageBuilder: (_, _, _) => MapSearchResultPage(query: query),
         transitionDuration: Duration.zero,
         reverseTransitionDuration: Duration.zero,
       ),

@@ -478,7 +478,7 @@ class _BookmarkPageState extends State<BookmarkPage> {
                       width: double.infinity,
                       height: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, _, _) => Container(
                         color: Colors.grey.shade300,
                         child: Center(
                           child: Icon(Icons.image_outlined,
