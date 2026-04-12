@@ -516,6 +516,7 @@ class LoginView(APIView):
                         "bio": user.bio,
                         "profile_photo": photo_url,
                         "is_warga_lokal": user.role == "local",
+                        "warga_lokal_region": user.warga_lokal_region,
                         "attempts_used": attempts_used,
                         "locked_until": locked_until,
                     }
@@ -716,6 +717,7 @@ class SurveySubmitView(APIView):
     def post(self, request):
         user_id = request.data.get("user_id")
         answers = request.data.get("answers", [])
+        region  = (request.data.get("region") or "").strip()
 
         if not user_id:
             return Response({"error": "user_id wajib diisi."}, status=status.HTTP_400_BAD_REQUEST)
@@ -753,9 +755,11 @@ class SurveySubmitView(APIView):
 
         if score >= 4:
             user.role = "local"
-            user.save(update_fields=["role"])
+            if region:
+                user.warga_lokal_region = region
+            user.save(update_fields=["role", "warga_lokal_region"])
             attempt.save()
-            return Response({"passed": True, "score": score})
+            return Response({"passed": True, "score": score, "region": user.warga_lokal_region})
 
         if attempt.attempts_used >= SURVEY_MAX_ATTEMPTS:
             attempt.locked_until = _tz.now() + _dt.timedelta(days=SURVEY_LOCKOUT_DAYS)
@@ -774,5 +778,94 @@ class SurveySubmitView(APIView):
             "attempts_remaining": SURVEY_MAX_ATTEMPTS - attempt.attempts_used,
         })
 
+
+# ---------------------------------------------------------------------------
+# Trip Planner endpoint (rule-based, uses FindKal Unggahan data)
+# POST /api/ai/trip-plan/
+# Body: { province, city (optional), duration (days), budget_id }
+# ---------------------------------------------------------------------------
+_BUDGET_MAP = {
+    "hemat":    ["Rp 1k - Rp 50k"],
+    "budget":   ["Rp 50k - Rp 100k"],
+    "menengah": ["Rp 100k - Rp 150k", "Rp 150k - Rp 200k"],
+    "premium":  ["Rp 150k - Rp 200k", "Rp 250k+"],
+    "luxury":   ["Rp 250k+"],
+}
+
+_BUDGET_LABELS = {
+    "hemat":    "< Rp 50.000 per hari",
+    "budget":   "Rp 50.000 – Rp 100.000 per hari",
+    "menengah": "Rp 100.000 – Rp 200.000 per hari",
+    "premium":  "Rp 200.000 – Rp 1.500.000 per hari",
+    "luxury":   "> Rp 1.500.000 per hari",
+}
+
+_VISIT_TIMES = ["09.00 AM", "12.00 PM", "03.00 PM", "06.00 PM"]
+
+
+class TripPlanView(APIView):
+    def post(self, request):
+        province  = (request.data.get("province") or "").strip()
+        city      = (request.data.get("city") or "").strip()
+        duration  = int(request.data.get("duration") or 1)
+        budget_id = (request.data.get("budget_id") or "menengah").strip()
+
+        budget_choices = _BUDGET_MAP.get(budget_id, _BUDGET_MAP["menengah"])
+        budget_label   = _BUDGET_LABELS.get(budget_id, "")
+
+        # Build location filter
+        loc_filter = Q()
+        if city:
+            loc_filter |= Q(alamat__icontains=city)
+        if province:
+            loc_filter |= Q(alamat__icontains=province)
+
+        # Try filtered query first
+        qs = Unggahan.objects.filter(loc_filter, budget__in=budget_choices).order_by("-rating")
+
+        # Fall back to all posts (sorted by rating) if too few results
+        if qs.count() < 3:
+            qs = Unggahan.objects.all().order_by("-rating")
+
+        # Deduplicate by nama_tempat (keep first = highest rated due to ordering)
+        seen_names = set()
+        deduped = []
+        for u in qs:
+            key = u.nama_tempat.lower().strip()
+            if key not in seen_names:
+                seen_names.add(key)
+                deduped.append(u)
+
+        # Take duration × 3 places, capped at 9
+        max_places = min(duration * 3, 9)
+        selected = deduped[:max_places]
+
+        # Build place list
+        places = []
+        for idx, u in enumerate(selected):
+            first_img = u.images.order_by("order").first()
+            image_url = (
+                request.build_absolute_uri(first_img.image.url)
+                if first_img and first_img.image
+                else None
+            )
+            time_label = _VISIT_TIMES[idx % len(_VISIT_TIMES)]
+            detail_text = (u.ulasan[:120] + ("..." if len(u.ulasan) > 120 else ""))
+            places.append({
+                "time":      time_label,
+                "title":     u.nama_tempat,
+                "details":   f"{detail_text}\nBudget: {u.budget}",
+                "image_url": image_url,
+            })
+
+        location_label = city if city else province
+        vibes = f"Perjalanan {duration} hari di {location_label} dengan budget {_BUDGET_LABELS.get(budget_id, '').split(' per')[0]}"
+
+        return Response({
+            "place_count":     len(places),
+            "vibes":           vibes,
+            "budget_summary":  budget_label,
+            "places":          places,
+        })
 
 

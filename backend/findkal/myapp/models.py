@@ -46,6 +46,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     bio = models.TextField(blank=True, default='')
     profile_photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
+    warga_lokal_region = models.CharField(max_length=100, blank=True, default='')
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
