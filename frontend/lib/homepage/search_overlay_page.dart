@@ -41,6 +41,7 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
   int _selectedFilter = 0; // 0 = Terbaru, 1 = Populer, 2 = Terfavorit
   double _minRatingFilter = 0.0; // Filter by minimum rating
   final Set<String> _bookmarkedPlaces = {}; // Local state to track bookmarked places
+  List<String> _suggestions = [];
 
   @override
   void initState() {
@@ -49,6 +50,24 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
       _focusNode.requestFocus();
     });
     _fetchPlaces();
+  }
+
+  void _updateSuggestions(String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) {
+      setState(() => _suggestions = []);
+      return;
+    }
+    final matches = _allPlaces
+        .where((p) => p.placeName.toLowerCase().contains(q))
+        .map((p) => p.placeName)
+        .toList();
+    matches.sort((a, b) {
+      final aStarts = a.toLowerCase().startsWith(q) ? 0 : 1;
+      final bStarts = b.toLowerCase().startsWith(q) ? 0 : 1;
+      return aStarts.compareTo(bStarts);
+    });
+    setState(() => _suggestions = matches.take(5).toList());
   }
 
   Future<void> _fetchPlaces() async {
@@ -98,7 +117,8 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
   }
 
   void _onSearchChanged(String query) {
-    _applyFilter(); // Re-evaluate all filters including the search query
+    _updateSuggestions(query);
+    _applyFilter();
   }
 
   void _applyFilter() {
@@ -198,6 +218,7 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
                       icon: const Icon(Icons.close, color: Colors.grey, size: 20),
                       onPressed: () {
                         _controller.clear();
+                        setState(() => _suggestions = []);
                         _onSearchChanged('');
                       },
                     )
@@ -210,6 +231,59 @@ class _SearchOverlayPageState extends State<SearchOverlayPage> {
               ),
             ),
             
+            // AUTOCOMPLETE SUGGESTIONS
+            if (_suggestions.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _suggestions.asMap().entries.map((entry) {
+                    final i = entry.key;
+                    final name = entry.value;
+                    return InkWell(
+                      onTap: () {
+                        _controller.text = name;
+                        setState(() => _suggestions = []);
+                        _applyFilter();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          border: i < _suggestions.length - 1
+                              ? Border(bottom: BorderSide(color: Colors.grey.shade100))
+                              : null,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.place_outlined, size: 18, color: Color(0xFF4AA5A6)),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: const TextStyle(fontFamily: 'Inter', fontSize: 14),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+
             // FILTER ROW
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

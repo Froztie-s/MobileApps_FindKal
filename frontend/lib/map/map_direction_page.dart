@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -53,6 +54,9 @@ class _MapDirectionPageState extends State<MapDirectionPage> {
   // Transport mode: 'car', 'motorcycle', 'walking'
   String _selectedMode = 'car';
 
+  List<String> _suggestions = [];
+  Timer? _debounce;
+
   @override
   void initState() {
     super.initState();
@@ -99,8 +103,43 @@ class _MapDirectionPageState extends State<MapDirectionPage> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchTextChanged(String query) {
+    _debounce?.cancel();
+    if (query.trim().isEmpty) {
+      setState(() => _suggestions = []);
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 400), () => _fetchSuggestions(query.trim()));
+  }
+
+  Future<void> _fetchSuggestions(String query) async {
+    try {
+      final params = <String, String>{
+        'q': query,
+        'format': 'json',
+        'limit': '5',
+        'addressdetails': '0',
+      };
+      if (_userLocation != null) {
+        final lat = _userLocation!.latitude;
+        final lon = _userLocation!.longitude;
+        params['viewbox'] = '${lon - 1},${lat + 1},${lon + 1},${lat - 1}';
+        params['bounded'] = '0';
+      }
+      final uri = Uri.https('nominatim.openstreetmap.org', '/search', params);
+      final res = await http.get(uri, headers: {'User-Agent': 'FindKalApp/1.0', 'Accept-Language': 'id,en'});
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body) as List;
+        setState(() {
+          _suggestions = data.map((e) => e['display_name'] as String).toList();
+        });
+      }
+    } catch (_) {}
   }
 
   /// Geocode [query] via Nominatim, update destination, then refetch route.
@@ -373,7 +412,11 @@ class _MapDirectionPageState extends State<MapDirectionPage> {
                           Expanded(
                             child: TextField(
                               controller: _searchController,
-                              onSubmitted: _searchNewDestination,
+                              onSubmitted: (q) {
+                                setState(() => _suggestions = []);
+                                _searchNewDestination(q);
+                              },
+                              onChanged: _onSearchTextChanged,
                               textInputAction: TextInputAction.search,
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
@@ -437,6 +480,52 @@ class _MapDirectionPageState extends State<MapDirectionPage> {
                           fontWeight: FontWeight.w600),
                     ),
                   ],
+                ),
+              ),
+            ),
+
+          // ── AUTOCOMPLETE SUGGESTIONS ─────────────────────────────────
+          if (_suggestions.isNotEmpty)
+            Positioned(
+              top: 72,
+              left: 70,
+              right: 16,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(16),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: _suggestions.map((name) {
+                      return InkWell(
+                        onTap: () {
+                          _searchController.text = name;
+                          setState(() => _suggestions = []);
+                          _debounce?.cancel();
+                          _searchNewDestination(name);
+                        },
+                        child: Container(
+                          color: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.place_outlined, size: 18, color: Color(0xFF4AA5A6)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: const TextStyle(fontFamily: 'Inter', fontSize: 13),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
             ),

@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+import '../services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -50,6 +52,13 @@ String _formatDistance(double meters) {
   return '${meters.toInt()} m';
 }
 
+class _MapSuggestion {
+  final String label;
+  final double? lat;
+  final double? lng;
+  _MapSuggestion({required this.label, this.lat, this.lng});
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 class MapSearchResultPage extends StatefulWidget {
@@ -70,17 +79,84 @@ class _MapSearchResultPageState extends State<MapSearchResultPage> {
   bool _loading = true;
   String? _error;
 
+  List<_MapSuggestion> _postSuggestions = [];
+  List<_MapSuggestion> _suggestions = [];
+  Timer? _debounce;
+
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController(text: widget.query);
     _initLocationThenSearch(widget.query);
+    _loadPostSuggestions();
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPostSuggestions() async {
+    try {
+      final data = await ApiService.fetchUnggahans();
+      final seen = <String>{};
+      final list = <_MapSuggestion>[];
+      for (final j in data) {
+        final name = j['placeName'] as String? ?? '';
+        final lat = (j['lat'] as num?)?.toDouble();
+        final lng = (j['lng'] as num?)?.toDouble();
+        if (name.isNotEmpty && seen.add(name) && lat != null && lng != null) {
+          list.add(_MapSuggestion(label: name, lat: lat, lng: lng));
+        }
+      }
+      if (mounted) setState(() => _postSuggestions = list);
+    } catch (_) {}
+  }
+
+  void _onSearchTextChanged(String query) {
+    _debounce?.cancel();
+    if (query.trim().isEmpty) {
+      setState(() => _suggestions = []);
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 400), () => _buildSuggestions(query.trim()));
+  }
+
+  Future<void> _buildSuggestions(String query) async {
+    final q = query.toLowerCase();
+    final postMatches = _postSuggestions
+        .where((s) => s.label.toLowerCase().contains(q))
+        .take(3)
+        .toList();
+
+    final nominatimMatches = <_MapSuggestion>[];
+    final remaining = 5 - postMatches.length;
+    if (remaining > 0) {
+      try {
+        final params = <String, String>{
+          'q': query,
+          'format': 'json',
+          'limit': '$remaining',
+          'addressdetails': '0',
+        };
+        if (_userLocation != null) {
+          final lat = _userLocation!.latitude;
+          final lon = _userLocation!.longitude;
+          params['viewbox'] = '${lon - 1},${lat + 1},${lon + 1},${lat - 1}';
+          params['bounded'] = '0';
+        }
+        final uri = Uri.https('nominatim.openstreetmap.org', '/search', params);
+        final res = await http.get(uri, headers: {'User-Agent': 'FindKalApp/1.0', 'Accept-Language': 'id,en'});
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body) as List;
+          nominatimMatches.addAll(data.map((e) => _MapSuggestion(label: e['display_name'] as String)));
+        }
+      } catch (_) {}
+    }
+
+    if (mounted) setState(() => _suggestions = [...postMatches, ...nominatimMatches]);
   }
 
   /// Get user location first, then search so results can be sorted by distance.
@@ -105,6 +181,54 @@ class _MapSearchResultPageState extends State<MapSearchResultPage> {
     await _search(query);
   }
 
+  /// Search nearby POIs using Overpass API (radius-based, more complete than Nominatim for POIs).
+  Future<List<_PlaceResult>> _searchOverpass(String query, LatLng userLoc) async {
+    // Sanitize query for use inside Overpass QL string literal
+    final safeQuery = query.replaceAll('"', '').replaceAll('\\', '');
+    final overpassQuery = '''
+[out:json][timeout:25];
+(
+  node["name"~"$safeQuery",i](around:20000,${userLoc.latitude},${userLoc.longitude});
+  way["name"~"$safeQuery",i](around:20000,${userLoc.latitude},${userLoc.longitude});
+  relation["name"~"$safeQuery",i](around:20000,${userLoc.latitude},${userLoc.longitude});
+);
+out center;
+''';
+    try {
+      final res = await http.post(
+        Uri.parse('https://overpass-api.de/api/interpreter'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'data=${Uri.encodeComponent(overpassQuery)}',
+      ).timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final elements = data['elements'] as List;
+        final results = <_PlaceResult>[];
+        for (final el in elements) {
+          double? lat, lon;
+          if (el['type'] == 'node') {
+            lat = (el['lat'] as num?)?.toDouble();
+            lon = (el['lon'] as num?)?.toDouble();
+          } else if (el['center'] != null) {
+            lat = (el['center']['lat'] as num?)?.toDouble();
+            lon = (el['center']['lon'] as num?)?.toDouble();
+          }
+          if (lat == null || lon == null) continue;
+          final tags = (el['tags'] as Map<String, dynamic>?) ?? {};
+          final name = tags['name'] as String? ?? query;
+          final addr = [
+            tags['addr:street'],
+            tags['addr:city'],
+          ].whereType<String>().join(', ');
+          final displayName = addr.isNotEmpty ? '$name, $addr' : name;
+          results.add(_PlaceResult(displayName: displayName, lat: lat, lon: lon));
+        }
+        return results;
+      }
+    } catch (_) {}
+    return [];
+  }
+
   Future<void> _search(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
@@ -114,55 +238,65 @@ class _MapSearchResultPageState extends State<MapSearchResultPage> {
       _error = null;
     });
     try {
-      // Build query — add viewbox around user so nearby results rank first
-      final params = <String, String>{
-        'q': trimmed,
-        'format': 'json',
-        'limit': '15',
-        'addressdetails': '1',
-      };
+      List<_PlaceResult> results = [];
+
+      // Try Overpass API first when we have a user location — it's much better
+      // for nearby POI searches (McDonald's, restaurants, etc.) than Nominatim.
       if (_userLocation != null) {
-        final lat = _userLocation!.latitude;
-        final lon = _userLocation!.longitude;
-        // ±1 degree box (~110 km) — bounded=0 still allows results outside
-        params['viewbox'] = '${lon - 1},${lat + 1},${lon + 1},${lat - 1}';
-        params['bounded'] = '0';
+        results = await _searchOverpass(trimmed, _userLocation!);
       }
-      final uri = Uri.https('nominatim.openstreetmap.org', '/search', params);
-      final res = await http.get(uri, headers: {
-        'User-Agent': 'FindKalApp/1.0',
-        'Accept-Language': 'id,en',
-      });
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body) as List;
-        List<_PlaceResult> results = data
-            .map((e) => _PlaceResult.fromJson(e as Map<String, dynamic>))
-            .toList();
 
-        // Attach distance and sort nearest first if we have user location
+      // Fall back to Nominatim if Overpass returned nothing or location is unavailable.
+      if (results.isEmpty) {
+        final params = <String, String>{
+          'q': trimmed,
+          'format': 'json',
+          'limit': '15',
+          'addressdetails': '1',
+        };
         if (_userLocation != null) {
-          results = results.map((r) {
-            final d = _haversine(_userLocation!.latitude,
-                _userLocation!.longitude, r.lat, r.lon);
-            return r.withDistance(d);
-          }).toList()
-            ..sort((a, b) => a.distanceMeters!.compareTo(b.distanceMeters!));
+          final lat = _userLocation!.latitude;
+          final lon = _userLocation!.longitude;
+          params['viewbox'] = '${lon - 1},${lat + 1},${lon + 1},${lat - 1}';
+          params['bounded'] = '0';
         }
-
-        setState(() {
-          _results = results;
-          _selected = results.isNotEmpty ? results.first : null;
-          _loading = false;
+        final uri = Uri.https('nominatim.openstreetmap.org', '/search', params);
+        final res = await http.get(uri, headers: {
+          'User-Agent': 'FindKalApp/1.0',
+          'Accept-Language': 'id,en',
         });
-        if (_selected != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _mapController.move(LatLng(_selected!.lat, _selected!.lon), 15);
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body) as List;
+          results = data
+              .map((e) => _PlaceResult.fromJson(e as Map<String, dynamic>))
+              .toList();
+        } else {
+          setState(() {
+            _error = 'Gagal mencari lokasi (${res.statusCode})';
+            _loading = false;
           });
+          return;
         }
-      } else {
-        setState(() {
-          _error = 'Gagal mencari lokasi (${res.statusCode})';
-          _loading = false;
+      }
+
+      // Attach distance and sort nearest first if we have user location
+      if (_userLocation != null) {
+        results = results.map((r) {
+          final d = _haversine(_userLocation!.latitude,
+              _userLocation!.longitude, r.lat, r.lon);
+          return r.withDistance(d);
+        }).toList()
+          ..sort((a, b) => a.distanceMeters!.compareTo(b.distanceMeters!));
+      }
+
+      setState(() {
+        _results = results;
+        _selected = results.isNotEmpty ? results.first : null;
+        _loading = false;
+      });
+      if (_selected != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _mapController.move(LatLng(_selected!.lat, _selected!.lon), 15);
         });
       }
     } catch (_) {
@@ -232,7 +366,11 @@ class _MapSearchResultPageState extends State<MapSearchResultPage> {
                           Expanded(
                             child: TextField(
                               controller: _searchController,
-                              onSubmitted: _search,
+                              onSubmitted: (q) {
+                                setState(() => _suggestions = []);
+                                _search(q);
+                              },
+                              onChanged: _onSearchTextChanged,
                               textInputAction: TextInputAction.search,
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
@@ -276,6 +414,64 @@ class _MapSearchResultPageState extends State<MapSearchResultPage> {
               ),
             ),
           ),
+
+          // ── AUTOCOMPLETE SUGGESTIONS ─────────────────────────────────
+          if (_suggestions.isNotEmpty)
+            Positioned(
+              top: 72,
+              left: 70,
+              right: 16,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(16),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: _suggestions.map((s) {
+                      final isPost = s.lat != null && s.lng != null;
+                      return InkWell(
+                        onTap: () {
+                          _searchController.text = s.label;
+                          setState(() => _suggestions = []);
+                          _debounce?.cancel();
+                          if (isPost) {
+                            _mapController.move(LatLng(s.lat!, s.lng!), 16);
+                            setState(() {
+                              _selected = _PlaceResult(displayName: s.label, lat: s.lat!, lon: s.lng!);
+                              _results = [_selected!];
+                              _loading = false;
+                            });
+                          } else {
+                            _search(s.label);
+                          }
+                        },
+                        child: Container(
+                          color: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Row(
+                            children: [
+                              Icon(isPost ? Icons.place : Icons.place_outlined, size: 18, color: const Color(0xFF4AA5A6)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  s.label,
+                                  style: const TextStyle(fontFamily: 'Inter', fontSize: 13),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (isPost)
+                                const Text('Tempat', style: TextStyle(fontFamily: 'Inter', fontSize: 11, color: Color(0xFF4AA5A6))),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ),
 
           // ── LOADING OVERLAY ───────────────────────────────────────────
           if (_loading)
@@ -411,7 +607,7 @@ class _MapSearchResultPageState extends State<MapSearchResultPage> {
                                   final result = await Navigator.push(
                                     context,
                                     PageRouteBuilder(
-                                      pageBuilder: (_, __, ___) =>
+                                      pageBuilder: (ctx, anim, secAnim) =>
                                           MapDirectionPage(
                                         destinationName:
                                             _selected!.displayName,

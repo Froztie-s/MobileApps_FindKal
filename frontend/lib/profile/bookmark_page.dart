@@ -19,6 +19,7 @@ class _BookmarkPageState extends State<BookmarkPage> {
   bool _isEditMode = false;
   bool _loading = true;
   final Set<int> _selectedIds = {};
+  List<String> _suggestions = [];
 
   @override
   void initState() {
@@ -55,14 +56,26 @@ class _BookmarkPageState extends State<BookmarkPage> {
 
   // ── Search ─────────────────────────────────────────────────────────────────
   void _onSearchChanged(String query) {
+    final q = query.trim().toLowerCase();
     setState(() {
-      if (query.trim().isEmpty) {
+      if (q.isEmpty) {
         _filtered = List.from(_bookmarks);
+        _suggestions = [];
       } else {
         _filtered = _bookmarks
-            .where((b) =>
-                b.placeName.toLowerCase().contains(query.trim().toLowerCase()))
+            .where((b) => b.placeName.toLowerCase().contains(q))
             .toList();
+        final matches = _bookmarks
+            .where((b) => b.placeName.toLowerCase().contains(q))
+            .map((b) => b.placeName)
+            .toSet()
+            .toList();
+        matches.sort((a, b) {
+          final aStarts = a.toLowerCase().startsWith(q) ? 0 : 1;
+          final bStarts = b.toLowerCase().startsWith(q) ? 0 : 1;
+          return aStarts.compareTo(bStarts);
+        });
+        _suggestions = matches.take(5).toList();
       }
     });
   }
@@ -288,6 +301,59 @@ class _BookmarkPageState extends State<BookmarkPage> {
                 ),
               ),
             ),
+
+            // ── AUTOCOMPLETE SUGGESTIONS ──────────────────────────────
+            if (_suggestions.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _suggestions.asMap().entries.map((entry) {
+                    final i = entry.key;
+                    final name = entry.value;
+                    return InkWell(
+                      onTap: () {
+                        _searchController.text = name;
+                        setState(() => _suggestions = []);
+                        _onSearchChanged(name);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          border: i < _suggestions.length - 1
+                              ? Border(bottom: BorderSide(color: Colors.grey.shade100))
+                              : null,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.place_outlined, size: 18, color: Color(0xFF4AA5A6)),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: const TextStyle(fontFamily: 'Inter', fontSize: 14),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
 
             // ── STATUS BAR (normal / edit mode) ───────────────────────
             Padding(

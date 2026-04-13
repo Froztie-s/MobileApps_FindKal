@@ -182,7 +182,8 @@ class _HomePageState extends State<HomePage> {
       final user = AuthState.currentUser ?? {};
       final currentUserUsername = user['username'] ?? '';
 
-      final data = await ApiService.fetchUnggahans(lat: lat, lng: lng);
+      final data = await ApiService.fetchUnggahans(lat: lat, lng: lng)
+          .timeout(const Duration(seconds: 20));
       if (mounted) {
         setState(() {
           final allUnggahans = data.map((j) => Unggahan.fromJson(j)).toList();

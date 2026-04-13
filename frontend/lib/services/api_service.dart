@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:http/io_client.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // Toggle this when switching between emulator and physical device
@@ -9,6 +11,13 @@ String get _baseUrl {
   if (kIsWeb) return 'http://localhost:8000/api';
   if (_usePhysicalDevice) return 'http://${dotenv.env['ipaddress']}:8000/api';
   return 'http://10.0.2.2:8000/api'; // Android emulator
+}
+
+/// Creates an http client with a 10-second socket connection timeout.
+/// This prevents Android from hanging indefinitely on unreachable local IPs.
+http.Client _makeClient() {
+  final inner = HttpClient()..connectionTimeout = const Duration(seconds: 10);
+  return IOClient(inner);
 }
 
 class ApiException implements Exception {
@@ -288,13 +297,14 @@ class ApiService {
     double? lat,
     double? lng,
   }) async {
+    final client = _makeClient();
     try {
       final uri = Uri.parse('$_baseUrl/unggahan/').replace(
         queryParameters: (lat != null && lng != null)
             ? {'lat': lat.toString(), 'lng': lng.toString()}
             : null,
       );
-      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+      final response = await client.get(uri).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final list = jsonDecode(response.body) as List;
@@ -305,6 +315,8 @@ class ApiService {
       rethrow;
     } catch (e) {
       throw ApiException('Tidak dapat terhubung ke server: $e');
+    } finally {
+      client.close();
     }
   }
 

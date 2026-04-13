@@ -9,6 +9,8 @@ class Unggahan {
   final String review;
   final String budget;
   final List<String> imagePaths;
+  final double? lat;
+  final double? lng;
 
   Unggahan({
     this.id,
@@ -21,6 +23,8 @@ class Unggahan {
     required this.review,
     required this.budget,
     required this.imagePaths,
+    this.lat,
+    this.lng,
   });
 
   factory Unggahan.fromJson(Map<String, dynamic> json) {
@@ -35,6 +39,8 @@ class Unggahan {
       review:          json['review'] as String,
       budget:          json['budget'] as String,
       imagePaths:      List<String>.from(json['imagePaths'] as List),
+      lat:             (json['latitude'] as num?)?.toDouble(),
+      lng:             (json['longitude'] as num?)?.toDouble(),
     );
   }
 }
@@ -50,6 +56,8 @@ final List<Unggahan> dummyUnggahans = [
     review: "Makanan dan minumannya enak, manteppp dah pokoknyaaa... Harga juga okes... Ambiencenya gak kalah mantep, tenang dan ademmm...",
     budget: "Rp 50k - Rp 100k",
     imagePaths: [],
+    lat: -6.311233445070645,
+    lng: 106.67090912925742,
   ),
   Unggahan(
     userName: "Richard",
@@ -61,6 +69,8 @@ final List<Unggahan> dummyUnggahans = [
     review: "Favourite spot to go buat WFC dan ngeliatin pemandangan. Makanannya not bad and there are lots of options. Plenty of beverages options too. Servicenya lumayan, around 20 menit udah dateng makanannya. Definitely will go back here :)",
     budget: "Rp 50k - Rp 100k",
     imagePaths: [],
+    lat: -6.296843778342772,
+    lng: 106.64090884795776,
   ),
   Unggahan(
     userName: "Sabine",
@@ -72,6 +82,8 @@ final List<Unggahan> dummyUnggahans = [
     review: "Kafenya lucu, estetik, dan mewah yang aku temukan dekat rumah. Mereka menyajikan kopi yang enak dan berbagai varian salt bread dengan rasa yang lezat.",
     budget: "Rp 50k - Rp 100k",
     imagePaths: [],
+    lat: -6.282289592014539,
+    lng: 106.63761182925705,
   ),
   Unggahan(
     userName: "Kaatiya",
@@ -83,6 +95,8 @@ final List<Unggahan> dummyUnggahans = [
     review: "menurutku enak, tapi bukan yang enak banget. yang jelas menurutku masih best menu cheesecakenya 🫶🏻",
     budget: "Rp 1k - Rp 50k",
     imagePaths: [],
+    lat: -6.273062709630183,
+    lng: 106.6356681717619,
   ),
   Unggahan(
     userName: "Sanca Jill",
@@ -94,5 +108,7 @@ final List<Unggahan> dummyUnggahans = [
     review: "Salah satu salt bread terenak yang udah aku coba! Luarnya crunchy dalemnya lembut. Untuk varian original bener-bener kerasa butternya dan crunchy bagian luarnya. Yang korean fried chicken enggak kalah enak tapi agak sedikit terlalu asin menurut lidahku, tapi kembali ke selera masing-masing. Favorit aku varian manis, milkeu way. Bener-bener kerasa susunya dan creamnya juga enggak bikin enek, tapi tetep kerasa crunchy dan buttery dari salt breadnya. Gak cukup kayaknya berkunjung sekali, will be repurchasing!",
     budget: "Rp 1k - Rp 50k",
     imagePaths: [],
+    lat: -6.287321464851777,
+    lng: 106.62584988322851,
   ),
 ];

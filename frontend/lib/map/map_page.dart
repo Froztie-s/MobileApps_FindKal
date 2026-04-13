@@ -1,9 +1,20 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'map_search_result_page.dart';
 import '../services/search_history.dart';
+import '../services/api_service.dart';
+
+class _MapSuggestion {
+  final String label;
+  final double? lat;
+  final double? lng;
+  _MapSuggestion({required this.label, this.lat, this.lng});
+}
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -19,16 +30,81 @@ class _MapPageState extends State<MapPage> {
   static const _defaultLocation = LatLng(-6.302640076739822, 106.63938340127805);
   LatLng _userLocation = _defaultLocation;
 
+  List<_MapSuggestion> _postSuggestions = [];
+  List<_MapSuggestion> _suggestions = [];
+  Timer? _debounce;
+
   @override
   void initState() {
     super.initState();
     _requestLocationAndMove();
+    _loadPostSuggestions();
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPostSuggestions() async {
+    try {
+      final data = await ApiService.fetchUnggahans();
+      final seen = <String>{};
+      final list = <_MapSuggestion>[];
+      for (final j in data) {
+        final name = j['placeName'] as String? ?? '';
+        final lat = (j['lat'] as num?)?.toDouble();
+        final lng = (j['lng'] as num?)?.toDouble();
+        if (name.isNotEmpty && seen.add(name) && lat != null && lng != null) {
+          list.add(_MapSuggestion(label: name, lat: lat, lng: lng));
+        }
+      }
+      if (mounted) setState(() => _postSuggestions = list);
+    } catch (_) {}
+  }
+
+  void _onSearchTextChanged(String query) {
+    _debounce?.cancel();
+    if (query.trim().isEmpty) {
+      setState(() => _suggestions = []);
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 400), () => _buildSuggestions(query.trim()));
+  }
+
+  Future<void> _buildSuggestions(String query) async {
+    final q = query.toLowerCase();
+    final postMatches = _postSuggestions
+        .where((s) => s.label.toLowerCase().contains(q))
+        .take(3)
+        .toList();
+
+    final nominatimMatches = <_MapSuggestion>[];
+    final remaining = 5 - postMatches.length;
+    if (remaining > 0) {
+      try {
+        final lat = _userLocation.latitude;
+        final lon = _userLocation.longitude;
+        final params = <String, String>{
+          'q': query,
+          'format': 'json',
+          'limit': '$remaining',
+          'addressdetails': '0',
+          'viewbox': '${lon - 1},${lat + 1},${lon + 1},${lat - 1}',
+          'bounded': '0',
+        };
+        final uri = Uri.https('nominatim.openstreetmap.org', '/search', params);
+        final res = await http.get(uri, headers: {'User-Agent': 'FindKalApp/1.0', 'Accept-Language': 'id,en'});
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body) as List;
+          nominatimMatches.addAll(data.map((e) => _MapSuggestion(label: e['display_name'] as String)));
+        }
+      } catch (_) {}
+    }
+
+    if (mounted) setState(() => _suggestions = [...postMatches, ...nominatimMatches]);
   }
 
   Future<void> _requestLocationAndMove() async {
@@ -179,7 +255,11 @@ class _MapPageState extends State<MapPage> {
                                 Expanded(
                                   child: TextField(
                                     controller: _searchController,
-                                    onSubmitted: (_) => _onSearch(),
+                                    onSubmitted: (_) {
+                                      setState(() => _suggestions = []);
+                                      _onSearch();
+                                    },
+                                    onChanged: _onSearchTextChanged,
                                     decoration: InputDecoration(
                                       hintText: 'Cari lokasi...',
                                       hintStyle: TextStyle(
@@ -228,6 +308,72 @@ class _MapPageState extends State<MapPage> {
                       ],
                     ),
                   ),
+
+                  // ── AUTOCOMPLETE SUGGESTIONS ─────────────────────────────────
+                  if (_suggestions.isNotEmpty)
+                    Positioned(
+                      top: 72,
+                      left: 70,
+                      right: 16,
+                      child: Material(
+                        elevation: 4,
+                        borderRadius: BorderRadius.circular(16),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: _suggestions.map((s) {
+                              final isPost = s.lat != null && s.lng != null;
+                              return InkWell(
+                                onTap: () {
+                                  _searchController.text = s.label;
+                                  setState(() => _suggestions = []);
+                                  _debounce?.cancel();
+                                  if (isPost) {
+                                    // Jump map directly to post's stored coordinates
+                                    _mapController.move(LatLng(s.lat!, s.lng!), 16);
+                                  } else {
+                                    SearchHistory.add(s.label);
+                                    Navigator.push(
+                                      context,
+                                      PageRouteBuilder(
+                                        pageBuilder: (context, anim, secAnim) => MapSearchResultPage(query: s.label),
+                                        transitionDuration: Duration.zero,
+                                        reverseTransitionDuration: Duration.zero,
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  color: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        isPost ? Icons.place : Icons.place_outlined,
+                                        size: 18,
+                                        color: const Color(0xFF4AA5A6),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          s.label,
+                                          style: const TextStyle(fontFamily: 'Inter', fontSize: 13),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (isPost)
+                                        const Text('Tempat', style: TextStyle(fontFamily: 'Inter', fontSize: 11, color: Color(0xFF4AA5A6))),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ),
 
                   // ── MY LOCATION FAB ───────────────────────────────────────────
                   Positioned(
