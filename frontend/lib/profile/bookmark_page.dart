@@ -515,13 +515,14 @@ class _BookmarkPageState extends State<BookmarkPage> {
     return GestureDetector(
       onTap: _isEditMode
           ? () => _toggleSelect(item.id!)
-          : () {
-              Navigator.push(
+          : () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => UnggahanDetailPage(unggahan: item),
                 ),
               );
+              if (mounted) _fetchBookmarks();
             },
       child: Container(
         height: 160,

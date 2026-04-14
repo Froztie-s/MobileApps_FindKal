@@ -216,6 +216,21 @@ class Bookmark(models.Model):
         return f"{self.user.username} → {self.unggahan.nama_tempat}"
 
 
+class SavedTripPlan(models.Model):
+    user       = models.ForeignKey(User, on_delete=models.CASCADE, related_name="trip_plans")
+    name       = models.CharField(max_length=200)
+    duration   = models.CharField(max_length=20)
+    image_url  = models.TextField(blank=True)
+    places     = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} by {self.user.username}"
+
+
 SURVEY_MAX_ATTEMPTS = 3
 SURVEY_LOCKOUT_DAYS = 3
 

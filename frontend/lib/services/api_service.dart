@@ -439,6 +439,59 @@ class ApiService {
     }
   }
 
+  /// Save a trip plan to the database
+  static Future<int> saveTripPlan({
+    required int userId,
+    required String name,
+    required String duration,
+    required String imageUrl,
+    required List<Map<String, dynamic>> places,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/ai/saved-trips/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'user_id': userId,
+              'name': name,
+              'duration': duration,
+              'image_url': imageUrl,
+              'places': places,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 201) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        return body['id'] as int;
+      }
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      throw ApiException(body['error'] ?? 'Gagal menyimpan rencana perjalanan.');
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tidak dapat terhubung ke server: $e');
+    }
+  }
+
+  /// Fetch all saved trip plans for a user
+  static Future<List<Map<String, dynamic>>> fetchTripPlans(int userId) async {
+    try {
+      final response = await http
+          .get(Uri.parse('$_baseUrl/ai/saved-trips/?user_id=$userId'))
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final list = jsonDecode(response.body) as List;
+        return list.cast<Map<String, dynamic>>();
+      }
+      throw ApiException('Gagal memuat rencana perjalanan.');
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tidak dapat terhubung ke server: $e');
+    }
+  }
+
   /// Remove a bookmark
   static Future<void> removeBookmark(int userId, int unggahanId) async {
     try {

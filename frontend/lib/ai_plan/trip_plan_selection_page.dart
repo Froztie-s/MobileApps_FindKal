@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import '../services/auth_state.dart';
 import 'ai_trip_detail_page.dart';
 import 'ai_trip_plan_page.dart';
-
-List<Map<String, dynamic>> globalTrips = [];
 
 class TripPlanSelectionPage extends StatefulWidget {
   const TripPlanSelectionPage({super.key});
@@ -12,6 +12,29 @@ class TripPlanSelectionPage extends StatefulWidget {
 }
 
 class _TripPlanSelectionPageState extends State<TripPlanSelectionPage> {
+  List<Map<String, dynamic>> _trips = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTrips();
+  }
+
+  Future<void> _fetchTrips() async {
+    final userId = AuthState.currentUser?['id'];
+    if (userId == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    try {
+      final trips = await ApiService.fetchTripPlans(userId as int);
+      if (mounted) setState(() { _trips = trips; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,7 +74,7 @@ class _TripPlanSelectionPageState extends State<TripPlanSelectionPage> {
                       builder: (context) => const AiTripPlanPage(),
                     ),
                   );
-                  setState(() {});
+                  _fetchTrips();
                 },
                 child: Container(
                   height: 180,
@@ -105,7 +128,9 @@ class _TripPlanSelectionPageState extends State<TripPlanSelectionPage> {
               ),
               const SizedBox(height: 16),
 
-              if (globalTrips.isEmpty)
+              if (_loading)
+                const Center(child: CircularProgressIndicator(color: Color(0xFF4AA5A6)))
+              else if (_trips.isEmpty)
                 const Padding(
                   padding: EdgeInsets.only(top: 20.0),
                   child: Center(
@@ -116,7 +141,7 @@ class _TripPlanSelectionPageState extends State<TripPlanSelectionPage> {
                   ),
                 )
               else
-                ...globalTrips.map(
+                ..._trips.map(
                   (trip) => GestureDetector(
                     onTap: () {
                       final places = (trip['places'] as List? ?? [])
@@ -134,7 +159,7 @@ class _TripPlanSelectionPageState extends State<TripPlanSelectionPage> {
                     child: _buildTripCard(
                       trip['name'] as String,
                       trip['duration'] as String,
-                      trip['imageUrl'] as String,
+                      trip['image_url'] as String,
                     ),
                   ),
                 ),
@@ -189,48 +214,13 @@ class _TripPlanSelectionPageState extends State<TripPlanSelectionPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '$duration hari',
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF9E7B3),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: Colors.orange,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'Planning',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 12,
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                Text(
+                  '$duration hari',
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
                 ),
               ],
             ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/auth_state.dart';
 import 'ai_trip_detail_page.dart';
-import 'trip_plan_selection_page.dart';
 
 class AiTripThemeSelectionPage extends StatefulWidget {
   final String tripName;
@@ -180,17 +180,24 @@ class _AiTripThemeSelectionPageState extends State<AiTripThemeSelectionPage> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      globalTrips.add({
-                        'name': title,
-                        'duration': widget.duration,
-                        'imageUrl': coverImageUrl ??
-                            'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80',
-                        'places': places,
-                      });
+                    onPressed: () async {
+                      final nav = Navigator.of(context);
+                      final userId = AuthState.currentUser?['id'];
+                      if (userId != null) {
+                        try {
+                          await ApiService.saveTripPlan(
+                            userId: userId as int,
+                            name: title,
+                            duration: widget.duration,
+                            imageUrl: coverImageUrl ??
+                                'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80',
+                            places: places,
+                          );
+                        } catch (_) {}
+                      }
 
-                      Navigator.push(
-                        context,
+                      if (!mounted) return;
+                      nav.push(
                         MaterialPageRoute(
                           builder: (_) => AiTripDetailPage(
                             tripName: title,

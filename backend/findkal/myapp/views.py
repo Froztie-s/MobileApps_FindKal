@@ -27,6 +27,7 @@ from .models import (
     User, EmailVerification, PasswordResetToken, PendingEmailVerification,
     Unggahan, UnggahanImage, Bookmark,
     SurveyQuestion, SurveyAttempt, SURVEY_MAX_ATTEMPTS, SURVEY_LOCKOUT_DAYS,
+    SavedTripPlan,
 )
 
 
@@ -951,5 +952,49 @@ class TripPlanView(APIView):
             "budget_summary":  budget_label,
             "places":          places,
         })
+
+
+class SavedTripPlanView(APIView):
+    def post(self, request):
+        user_id   = request.data.get("user_id")
+        name      = (request.data.get("name") or "").strip()
+        duration  = (request.data.get("duration") or "1")
+        image_url = (request.data.get("image_url") or "")
+        places    = request.data.get("places") or []
+
+        if not user_id or not name:
+            return Response({"error": "user_id and name are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        trip = SavedTripPlan.objects.create(
+            user=user,
+            name=name,
+            duration=str(duration),
+            image_url=image_url,
+            places=places,
+        )
+        return Response({"id": trip.pk}, status=status.HTTP_201_CREATED)
+
+    def get(self, request):
+        user_id = request.query_params.get("user_id")
+        if not user_id:
+            return Response({"error": "user_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        trips = SavedTripPlan.objects.filter(user_id=user_id)
+        data = [
+            {
+                "id":        t.pk,
+                "name":      t.name,
+                "duration":  t.duration,
+                "image_url": t.image_url,
+                "places":    t.places,
+            }
+            for t in trips
+        ]
+        return Response(data)
 
 
