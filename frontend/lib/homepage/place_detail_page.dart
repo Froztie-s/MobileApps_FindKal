@@ -1,7 +1,5 @@
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // import for Clipboard
-import 'package:url_launcher/url_launcher.dart'; // import for url_launcher
 import 'package:share_plus/share_plus.dart';
 import '../models/unggahan.dart';
 import 'search_overlay_page.dart';
@@ -174,9 +172,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
   }
 
   Widget _buildBottomActions() {
-    // Determine target website (we use "instagram.com" as placeholder for now, per the overview UI)
-    const String targetWebsite = "https://instagram.com";
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -187,9 +182,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildActionItem(Icons.directions, "Directions", true, () {
-              // Directs to MapDirectionPage with the target place prepopulated
-              // Default to a dummy coordinate if not available
+            _buildActionItem(Icons.directions, "Directions", () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -206,10 +199,9 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
             _buildActionItem(
               _isSaved ? Icons.bookmark : Icons.bookmark_border,
               "Save",
-              false,
               _savingBookmark ? null : _toggleSave,
             ),
-            _buildActionItem(Icons.share_outlined, "Share", false, () {
+            _buildActionItem(Icons.share_outlined, "Share", () {
               final place = widget.place;
               final rep = place.unggahans.isNotEmpty ? place.unggahans.first : null;
               final address = rep?.address ?? '-';
@@ -224,26 +216,13 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
 
               SharePlus.instance.share(ShareParams(text: text));
             }),
-            _buildActionItem(Icons.public, "Website", false, () async {
-              final Uri url = Uri.parse(targetWebsite);
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url, mode: LaunchMode.externalApplication);
-              } else {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).clearSnackBars();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Tidak dapat membuka website.'), duration: Duration(seconds: 1)),
-                  );
-                }
-              }
-            }),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActionItem(IconData icon, String label, bool isPrimary, VoidCallback? onTap) {
+  Widget _buildActionItem(IconData icon, String label, VoidCallback? onTap) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -253,13 +232,13 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isPrimary ? const Color(0xFF0F9D58) : Colors.transparent, // Google Maps green or transparent
+              color: Colors.transparent,
               shape: BoxShape.circle,
-              border: isPrimary ? null : Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: const Color(0xFF4AA5A6)),
             ),
             child: Icon(
               icon,
-              color: isPrimary ? Colors.white : const Color(0xFF4AA5A6),
+              color: const Color(0xFF4AA5A6),
               size: 22,
             ),
           ),
@@ -269,8 +248,8 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 12,
-              fontWeight: isPrimary ? FontWeight.bold : FontWeight.w500,
-              color: isPrimary ? Colors.black87 : Colors.grey.shade700,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade700,
             ),
           ),
         ],
@@ -307,7 +286,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> with SingleTickerProv
         ),
         _buildListTile(Icons.location_on_outlined, address),
         _buildListTile(Icons.access_time, "Buka ⋅ Tutup pukul 22.00 (Mock)"),
-        _buildListTile(Icons.public, "instagram.com"),
         const Divider(height: 24, thickness: 8, color: Color(0xFFF1F3F4)),
         
         // Gallery Section

@@ -984,17 +984,119 @@ class SavedTripPlanView(APIView):
         if not user_id:
             return Response({"error": "user_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
+        def _rewrite_url(url):
+            """Re-resolve a stored absolute media URL against the current request host."""
+            if url and "/media/" in url:
+                media_path = url[url.index("/media/"):]
+                return request.build_absolute_uri(media_path)
+            return url
+
         trips = SavedTripPlan.objects.filter(user_id=user_id)
-        data = [
-            {
+        data = []
+        for t in trips:
+            places = [
+                {**p, "image_url": _rewrite_url(p.get("image_url"))}
+                for p in (t.places or [])
+            ]
+            data.append({
                 "id":        t.pk,
                 "name":      t.name,
                 "duration":  t.duration,
-                "image_url": t.image_url,
-                "places":    t.places,
-            }
-            for t in trips
-        ]
+                "image_url": _rewrite_url(t.image_url),
+                "places":    places,
+            })
         return Response(data)
+
+
+class ChangeEmailRequestView(APIView):
+    def post(self, request):
+        user_id   = request.data.get("user_id")
+        new_email = (request.data.get("new_email") or "").strip().lower()
+
+        if not user_id or not new_email:
+            return Response({"error": "user_id dan new_email wajib diisi."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "Pengguna tidak ditemukan."}, status=status.HTTP_404_NOT_FOUND)
+
+        if User.objects.filter(email=new_email).exclude(pk=user_id).exists():
+            return Response({"error": "Email ini sudah digunakan oleh akun lain."}, status=status.HTTP_400_BAD_REQUEST)
+
+        PendingEmailVerification.objects.filter(email=new_email, is_used=False).update(is_used=True)
+
+        code = f"{__import__('random').randint(0, 999999):06d}"
+        PendingEmailVerification.objects.create(email=new_email, code=code)
+
+        try:
+            _send_otp_email(new_email, code)
+        except Exception:
+            return Response({"error": "Gagal mengirim email verifikasi. Coba lagi."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        return Response({"message": "Kode OTP telah dikirim ke email baru."})
+
+
+class ChangeEmailConfirmView(APIView):
+    def post(self, request):
+        user_id   = request.data.get("user_id")
+        new_email = (request.data.get("new_email") or "").strip().lower()
+        code      = (request.data.get("code") or "").strip()
+
+        if not user_id or not new_email or not code:
+            return Response({"error": "user_id, new_email, dan code wajib diisi."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "Pengguna tidak ditemukan."}, status=status.HTTP_404_NOT_FOUND)
+
+        if User.objects.filter(email=new_email).exclude(pk=user_id).exists():
+            return Response({"error": "Email ini sudah digunakan oleh akun lain."}, status=status.HTTP_400_BAD_REQUEST)
+
+        pending = PendingEmailVerification.objects.filter(email=new_email, is_used=False).order_by("-created_at").first()
+        if not pending or not pending.verify(code):
+            return Response({"error": "Kode tidak valid atau sudah kedaluwarsa."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.email = new_email
+        user.save(update_fields=["email"])
+
+        return Response({"message": "Email berhasil diubah.", "new_email": new_email})
+
+
+# ---------------------------------------------------------------------------
+# Change password (authenticated)
+# POST /api/change-password/
+# Body: { "user_id": int, "current_password": str, "new_password": str }
+# ---------------------------------------------------------------------------
+class ChangePasswordView(APIView):
+    def post(self, request):
+        user_id          = request.data.get("user_id")
+        current_password = request.data.get("current_password", "")
+        new_password     = request.data.get("new_password", "")
+
+        if not user_id or not current_password or not new_password:
+            return Response(
+                {"error": "user_id, current_password, dan new_password wajib diisi."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "Pengguna tidak ditemukan."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not user.check_password(current_password):
+            return Response({"error": "Kata sandi saat ini tidak sesuai."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            validate_password(new_password, user=user)
+        except ValidationError as e:
+            return Response({"error": list(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        return Response({"detail": "Kata sandi berhasil diubah."}, status=status.HTTP_200_OK)
 
 

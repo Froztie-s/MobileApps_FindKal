@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -582,13 +583,49 @@ class MapPreviewCard extends StatelessWidget {
 
   const MapPreviewCard({super.key, required this.items});
 
-  static const _defaultCenter = LatLng(-6.302640, 106.639383); // BSD City
-
   @override
   Widget build(BuildContext context) {
     final validItems = items
         .where((p) => p['latitude'] != null && p['longitude'] != null)
         .toList();
+
+    if (validItems.isEmpty) {
+      return Container(
+        width: double.infinity,
+        height: 160,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0F9FA),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFF4AA5A6).withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.map_outlined, size: 40, color: Color(0xFF4AA5A6)),
+            SizedBox(height: 10),
+            Text(
+              'Peta tidak tersedia',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF4AA5A6),
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Tambahkan koordinat lokasi pada postingan',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final points = validItems
         .map((p) => LatLng(
               (p['latitude'] as num).toDouble(),
@@ -607,19 +644,11 @@ class MapPreviewCard extends StatelessWidget {
           flags: InteractiveFlag.none,
         ),
       );
-    } else if (points.length == 1) {
+    } else {
       mapOptions = MapOptions(
         initialCenter: points.first,
         initialZoom: 15,
         interactionOptions: const InteractionOptions(
-          flags: InteractiveFlag.none,
-        ),
-      );
-    } else {
-      mapOptions = const MapOptions(
-        initialCenter: _defaultCenter,
-        initialZoom: 14,
-        interactionOptions: InteractionOptions(
           flags: InteractiveFlag.none,
         ),
       );
@@ -662,7 +691,7 @@ class MapPreviewCard extends StatelessWidget {
                 for (int i = 0; i < validItems.length; i++)
                   Marker(
                     point: points[i],
-                    width: 155,
+                    width: 170,
                     height: 100,
                     alignment: Alignment.bottomCenter,
                     child: _MapFloatingCard(
@@ -693,74 +722,137 @@ class _MapFloatingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 160,
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.97),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: imageUrl != null
-                ? Image.network(
-                    imageUrl!,
-                    height: 50,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
-                      height: 50,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.place, size: 20, color: Colors.grey),
-                    ),
-                  )
-                : Container(
-                    height: 50,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.place, size: 20, color: Colors.grey),
-                  ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: imageUrl != null
+                      ? Image.network(
+                          imageUrl!,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, e, stack) => _placeholderBox(),
+                        )
+                      : _placeholderBox(),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  time,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 10,
-                    color: Color(0xFF4AA5A6),
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        time,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 10,
+                          color: Color(0xFF4AA5A6),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
+        CustomPaint(
+          size: const Size(14, 8),
+          painter: _TailPainter(),
+        ),
+      ],
+    );
+  }
+
+  Widget _placeholderBox() {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        color: const Color(0xFF4AA5A6).withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Center(
+        child: Text(
+          title.isNotEmpty ? title[0].toUpperCase() : '?',
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF4AA5A6),
+          ),
+        ),
       ),
     );
   }
+}
+
+class _TailPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final shadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.15)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    canvas.drawPath(
+      ui.Path()
+        ..moveTo(0, 0)
+        ..lineTo(size.width / 2, size.height + 1)
+        ..lineTo(size.width, 0)
+        ..close(),
+      shadowPaint,
+    );
+
+    final fillPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.97)
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(
+      ui.Path()
+        ..moveTo(0, 0)
+        ..lineTo(size.width / 2, size.height)
+        ..lineTo(size.width, 0)
+        ..close(),
+      fillPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

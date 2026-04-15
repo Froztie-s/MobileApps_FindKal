@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import '../services/auth_state.dart';
 import '../user_auth/change_email_otp_page.dart';
 
 class ChangeEmailPage extends StatefulWidget {
@@ -22,10 +24,55 @@ class _ChangeEmailPageState extends State<ChangeEmailPage> {
     final email = _emailController.text.trim();
     if (email.isEmpty) return;
 
-    setState(() => _isLoading = true);
+    final emailRegex = RegExp(r'^[\w\.\+\-]+@[\w\-]+(\.\w{2,})+$');
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Format email tidak valid.',
+              style: TextStyle(fontFamily: 'Inter')),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        ),
+      );
+      return;
+    }
 
-    // Simulasi kirim OTP
-    await Future.delayed(const Duration(milliseconds: 800));
+    final userId = AuthState.currentUser?['id'];
+    if (userId == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await ApiService.sendChangeEmailOtp(userId as int, email);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message, style: const TextStyle(fontFamily: 'Inter')),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        ),
+      );
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Terjadi kesalahan. Coba lagi.',
+              style: TextStyle(fontFamily: 'Inter')),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        ),
+      );
+      return;
+    }
 
     if (!mounted) return;
     setState(() => _isLoading = false);
@@ -47,7 +94,7 @@ class _ChangeEmailPageState extends State<ChangeEmailPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,7 +131,6 @@ class _ChangeEmailPageState extends State<ChangeEmailPage> {
               ),
               const SizedBox(height: 32),
 
-              // Email label
               const Text(
                 'Email',
                 style: TextStyle(
@@ -96,7 +142,6 @@ class _ChangeEmailPageState extends State<ChangeEmailPage> {
               ),
               const SizedBox(height: 8),
 
-              // Email input
               Container(
                 height: 48,
                 decoration: BoxDecoration(
@@ -121,7 +166,6 @@ class _ChangeEmailPageState extends State<ChangeEmailPage> {
               ),
               const SizedBox(height: 32),
 
-              // Lanjutkan button
               SizedBox(
                 width: double.infinity,
                 height: 48,

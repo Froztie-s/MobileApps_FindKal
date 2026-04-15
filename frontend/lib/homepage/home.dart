@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -6,10 +5,10 @@ import 'package:geolocator/geolocator.dart';
 import '../../services/auth_state.dart';
 import '../map/map_page.dart';
 import 'search_overlay_page.dart';
+import 'place_detail_page.dart';
 import '../unggahan/buat_unggahan.dart';
 import '../profile/profile.dart';
 import '../../models/unggahan.dart';
-import '../unggahan/unggahan_detail_page.dart';
 import '../../services/api_service.dart';
 import '../ai_plan/trip_plan_selection_page.dart';
 import '../settingpage/survey_intro_page.dart';
@@ -27,7 +26,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late int _selectedIndex;
   bool _hasUnreadNotification = true;
-  List<Unggahan> _unggahans = [];
+  List<PlaceSummary> _places = [];
   bool _loadingFeed = true;
 
   final MapController _mapController = MapController();
@@ -186,9 +185,34 @@ class _HomePageState extends State<HomePage> {
       if (mounted) {
         setState(() {
           final allUnggahans = data.map((j) => Unggahan.fromJson(j)).toList();
-          _unggahans = allUnggahans
-              .where((u) => u.usernameHandle.replaceAll('@', '') != currentUserUsername)
-              .toList();
+
+          // Group ALL posts (including current user's) so PlaceDetailPage
+          // shows the full picture — ulasan & unggahan from everyone.
+          final Map<String, List<Unggahan>> grouped = {};
+          for (final u in allUnggahans) {
+            grouped.putIfAbsent(u.placeName, () => []).add(u);
+          }
+
+          // Only surface place cards where at least one OTHER user has posted,
+          // so the home feed doesn't show places the user uploaded alone.
+          _places = grouped.entries
+              .where((e) => e.value.any(
+                    (u) => u.usernameHandle.replaceAll('@', '') != currentUserUsername,
+                  ))
+              .map((e) {
+            final list = e.value;
+            final avgRating = list.fold(0, (s, u) => s + u.rating) / list.length;
+            final firstImage = list.expand((u) => u.imagePaths).firstOrNull ?? '';
+            return PlaceSummary(
+              placeName: e.key,
+              imagePath: firstImage,
+              postCount: list.length,
+              averageRating: avgRating,
+              sampleUnggahan: list.first,
+              unggahans: list,
+            );
+          }).toList();
+
           _loadingFeed = false;
         });
       }
@@ -411,12 +435,12 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
 
-                  // Greeting Placeholder
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  // Greeting
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Text(
-                      "Selamat datang, User! ⛅",
-                      style: TextStyle(
+                      "Selamat datang, ${AuthState.currentUser?['username'] ?? 'User'}! ⛅",
+                      style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -558,10 +582,10 @@ class _HomePageState extends State<HomePage> {
 
                   // Horizontal Scrollable Cards
                   SizedBox(
-                    height: 240,
+                    height: 200,
                     child: _loadingFeed
                         ? const Center(child: CircularProgressIndicator(color: Color(0xFF4AA5A6)))
-                        : _unggahans.isEmpty
+                        : _places.isEmpty
                             ? Center(
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -577,9 +601,9 @@ class _HomePageState extends State<HomePage> {
                             : ListView.builder(
                                 scrollDirection: Axis.horizontal,
                                 padding: const EdgeInsets.only(left: 16, right: 8),
-                                itemCount: _unggahans.length,
+                                itemCount: _places.length,
                                 itemBuilder: (context, index) {
-                                  return _buildExplorasiCard(_unggahans[index]);
+                                  return _buildPlaceCard(_places[index]);
                                 },
                               ),
                   ),
@@ -624,101 +648,126 @@ class _HomePageState extends State<HomePage> {
         );
   }
 
-  Widget _buildExplorasiCard(Unggahan unggahan) {
-    final user = AuthState.currentUser ?? {};
-    final isCurrentUser = unggahan.usernameHandle.replaceAll('@', '') == user['username'];
-    
-    String? avatarSource = unggahan.userAvatar;
-    if (isCurrentUser && user['profile_photo'] != null) {
-      avatarSource = user['profile_photo'] as String;
-    }
-
-    ImageProvider? avatarProvider;
-    if (avatarSource != null && avatarSource.isNotEmpty) {
-      if (avatarSource.startsWith('http')) {
-        avatarProvider = NetworkImage(avatarSource);
-      } else {
-        avatarProvider = FileImage(File(avatarSource));
-      }
-    }
-
+  Widget _buildPlaceCard(PlaceSummary place) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => UnggahanDetailPage(unggahan: unggahan),
+            builder: (_) => PlaceDetailPage(place: place),
           ),
         );
       },
       child: Container(
-        width: 180,
+        width: 160,
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
           borderRadius: BorderRadius.circular(16),
+          color: Colors.grey.shade200,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // User section
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundColor: Colors.grey.shade400,
-                    backgroundImage: avatarProvider,
-                    child: avatarProvider == null
-                        ? const Icon(Icons.person, size: 16, color: Colors.white)
-                        : null,
+        child: Stack(
+          children: [
+            // Background image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: place.imagePath.isNotEmpty
+                  ? Image.network(
+                      place.imagePath,
+                      width: 160,
+                      height: 200,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, _) => Container(
+                        width: 160,
+                        height: 200,
+                        color: Colors.grey.shade300,
+                        child: const Icon(Icons.image, color: Colors.grey, size: 36),
+                      ),
+                    )
+                  : Container(
+                      width: 160,
+                      height: 200,
+                      color: Colors.grey.shade300,
+                      child: const Icon(Icons.image, color: Colors.grey, size: 36),
+                    ),
+            ),
+            // Gradient overlay
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                width: 160,
+                height: 200,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withValues(alpha: 0.65),
+                      Colors.transparent,
+                    ],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      unggahan.usernameHandle.replaceAll('@', ''),
+                ),
+              ),
+            ),
+            // Rating badge top-right
+            Positioned(
+              top: 10,
+              right: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star, color: Colors.orange, size: 12),
+                    const SizedBox(width: 3),
+                    Text(
+                      place.averageRating.toStringAsFixed(1),
                       style: const TextStyle(
                         fontFamily: 'Inter',
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Place name + review count at bottom
+            Positioned(
+              bottom: 12,
+              left: 10,
+              right: 10,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    place.placeName,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${place.postCount} ulasan',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              // Image Placeholder
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade400,
-                    borderRadius: BorderRadius.circular(12),
-                    image: unggahan.imagePaths.isNotEmpty
-                        ? DecorationImage(
-                            image: NetworkImage(unggahan.imagePaths.first),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Title
-              Text(
-                unggahan.placeName,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

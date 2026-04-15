@@ -30,10 +30,16 @@ class _AiTripPlanPageState extends State<AiTripPlanPage> {
   bool _loadingProvinces = false;
   bool _loadingCities = false;
 
+  bool get _canProceed =>
+      _nameController.text.trim().isNotEmpty &&
+      _selectedProvince != null &&
+      _selectedBudgetId != null;
+
   @override
   void initState() {
     super.initState();
     _loadProvinces();
+    _nameController.addListener(() => setState(() {}));
   }
 
   @override
@@ -74,6 +80,23 @@ class _AiTripPlanPageState extends State<AiTripPlanPage> {
       _cities = [];
       _loadingCities = true;
     });
+
+    if (name.toLowerCase() != 'banten') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Saat ini dalam mode demo, hanya Provinsi Banten yang tersedia.',
+            style: TextStyle(fontFamily: 'Inter', fontSize: 13),
+          ),
+          backgroundColor: Colors.orange.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+
     try {
       final list = await _fetch('$_apiBase/cities/$id');
       setState(() => _cities = list);
@@ -191,6 +214,24 @@ class _AiTripPlanPageState extends State<AiTripPlanPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
+                    if (_nameController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Nama perjalanan harus diisi.')),
+                      );
+                      return;
+                    }
+                    if (_selectedProvince == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Provinsi harus dipilih.')),
+                      );
+                      return;
+                    }
+                    if (_selectedBudgetId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Budget harus dipilih.')),
+                      );
+                      return;
+                    }
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -206,7 +247,9 @@ class _AiTripPlanPageState extends State<AiTripPlanPage> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF9CCCD0),
+                    backgroundColor: _canProceed
+                        ? const Color(0xFF9CCCD0)
+                        : Colors.grey.shade400,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),

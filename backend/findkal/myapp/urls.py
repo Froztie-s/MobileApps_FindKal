@@ -17,6 +17,9 @@ from .views import (
     SurveySubmitView,
     TripPlanView,
     SavedTripPlanView,
+    ChangeEmailRequestView,
+    ChangeEmailConfirmView,
+    ChangePasswordView,
 )
 
 urlpatterns = [
@@ -37,4 +40,7 @@ urlpatterns = [
     path("survey/submit/", SurveySubmitView.as_view(), name="survey-submit"),
     path("ai/trip-plan/", TripPlanView.as_view(), name="ai-trip-plan"),
     path("ai/saved-trips/", SavedTripPlanView.as_view(), name="saved-trip-plans"),
+    path("change-email/request/", ChangeEmailRequestView.as_view(), name="change-email-request"),
+    path("change-email/confirm/", ChangeEmailConfirmView.as_view(), name="change-email-confirm"),
+    path("change-password/", ChangePasswordView.as_view(), name="change-password"),
 ]

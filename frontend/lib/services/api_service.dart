@@ -458,6 +458,78 @@ class ApiService {
     }
   }
 
+  /// Send OTP to a new email address for email change verification
+  static Future<void> sendChangeEmailOtp(int userId, String newEmail) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/change-email/request/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'user_id': userId, 'new_email': newEmail}),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        throw ApiException(body['error'] ?? 'Gagal mengirim kode verifikasi.');
+      }
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tidak dapat terhubung ke server: $e');
+    }
+  }
+
+  /// Change password for a logged-in user (requires current password)
+  static Future<void> changePassword({
+    required int userId,
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/change-password/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'user_id': userId,
+              'current_password': currentPassword,
+              'new_password': newPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final err = body['error'];
+        throw ApiException(err is List ? err.join(' ') : err ?? 'Gagal mengubah kata sandi.');
+      }
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tidak dapat terhubung ke server: $e');
+    }
+  }
+
+  /// Verify the OTP and update the user's email
+  static Future<void> confirmChangeEmail(int userId, String newEmail, String code) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/change-email/confirm/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'user_id': userId, 'new_email': newEmail, 'code': code}),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        throw ApiException(body['error'] ?? 'Kode tidak valid atau sudah kedaluwarsa.');
+      }
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Tidak dapat terhubung ke server: $e');
+    }
+  }
+
   /// Save a trip plan to the database
   static Future<int> saveTripPlan({
     required int userId,

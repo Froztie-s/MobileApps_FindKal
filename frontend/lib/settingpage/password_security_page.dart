@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_state.dart';
 import 'change_email_page.dart';
+import 'change_password_page.dart';
 
 class PasswordSecurityPage extends StatefulWidget {
   const PasswordSecurityPage({super.key});
@@ -227,8 +228,30 @@ class _PasswordSecurityPageState extends State<PasswordSecurityPage> {
           _buildRow(
             label: 'Kata sandi',
             value: '••••••••••',
-            onEdit: () {
-              // TODO: navigasi ke halaman ganti password
+            onEdit: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final updated = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ChangePasswordPage(),
+                ),
+              );
+              if (updated == true && mounted) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: const Text(
+                      'Kata sandi kamu sudah berhasil diubah.',
+                      style: TextStyle(fontFamily: 'Inter', fontSize: 13),
+                    ),
+                    backgroundColor: const Color(0xFF4AA5A6),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              }
             },
           ),
           const Divider(height: 1, indent: 16, endIndent: 16),

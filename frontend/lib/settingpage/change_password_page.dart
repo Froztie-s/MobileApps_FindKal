@@ -1,76 +1,81 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../services/auth_state.dart';
 
-class ChangeEmailOtpPage extends StatefulWidget {
-  final String newEmail;
-
-  const ChangeEmailOtpPage({super.key, required this.newEmail});
+class ChangePasswordPage extends StatefulWidget {
+  const ChangePasswordPage({super.key});
 
   @override
-  State<ChangeEmailOtpPage> createState() => _ChangeEmailOtpPageState();
+  State<ChangePasswordPage> createState() => _ChangePasswordPageState();
 }
 
-class _ChangeEmailOtpPageState extends State<ChangeEmailOtpPage> {
-  final List<TextEditingController> _controllers =
-      List.generate(6, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+class _ChangePasswordPageState extends State<ChangePasswordPage> {
+  final _currentController = TextEditingController();
+  final _newController = TextEditingController();
+  final _confirmController = TextEditingController();
+
+  bool _showCurrent = false;
+  bool _showNew = false;
+  bool _showConfirm = false;
   bool _isLoading = false;
 
   @override
   void dispose() {
-    for (final c in _controllers) { c.dispose(); }
-    for (final f in _focusNodes) { f.dispose(); }
+    _currentController.dispose();
+    _newController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
-  String get _code => _controllers.map((c) => c.text).join();
+  bool get _canSubmit =>
+      _currentController.text.isNotEmpty &&
+      _newController.text.isNotEmpty &&
+      _confirmController.text.isNotEmpty;
 
-  void _onResend() async {
-    final userId = AuthState.currentUser?['id'];
-    if (userId == null) return;
-    try {
-      await ApiService.sendChangeEmailOtp(userId as int, widget.newEmail);
-      if (!mounted) return;
+  void _onSimpan() async {
+    final current = _currentController.text;
+    final newPass = _newController.text;
+    final confirm = _confirmController.text;
+
+    if (newPass != confirm) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-            'Kode baru sudah dikirim ulang melalui email. Segera cek inbox kamu',
-            style: TextStyle(fontFamily: 'Inter', fontSize: 13),
-          ),
-          backgroundColor: const Color(0xFF4AA5A6),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.message, style: const TextStyle(fontFamily: 'Inter')),
+          content: const Text('Kata sandi baru tidak cocok.',
+              style: TextStyle(fontFamily: 'Inter')),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         ),
       );
-    } catch (_) {}
-  }
+      return;
+    }
 
-  void _onLanjutkan() async {
-    if (_code.length < 6) return;
+    if (newPass == current) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Kata sandi baru tidak boleh sama dengan yang lama.',
+              style: TextStyle(fontFamily: 'Inter')),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        ),
+      );
+      return;
+    }
 
     final userId = AuthState.currentUser?['id'];
     if (userId == null) return;
 
     setState(() => _isLoading = true);
     try {
-      await ApiService.confirmChangeEmail(userId as int, widget.newEmail, _code);
+      await ApiService.changePassword(
+        userId: userId as int,
+        currentPassword: current,
+        newPassword: newPass,
+      );
       if (!mounted) return;
-      AuthState.currentUser!['email'] = widget.newEmail;
       Navigator.pop(context, true);
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -121,7 +126,7 @@ class _ChangeEmailOtpPageState extends State<ChangeEmailOtpPage> {
               const SizedBox(height: 28),
 
               const Text(
-                'Cek email kamu',
+                'Ubah kata sandi',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 24,
@@ -131,7 +136,7 @@ class _ChangeEmailOtpPageState extends State<ChangeEmailOtpPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Kami telah mengirim kode melalui email. Masukkan kode untuk konfirmasi akun',
+                'Masukkan kata sandi saat ini lalu buat kata sandi baru.',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 13,
@@ -141,76 +146,27 @@ class _ChangeEmailOtpPageState extends State<ChangeEmailOtpPage> {
               ),
               const SizedBox(height: 32),
 
-              // 6-digit OTP boxes
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(6, (i) {
-                  return SizedBox(
-                    width: 44,
-                    height: 52,
-                    child: TextField(
-                      controller: _controllers[i],
-                      focusNode: _focusNodes[i],
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      maxLength: 1,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(
-                        counterText: '',
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                              color: Color(0xFF4AA5A6), width: 1.5),
-                        ),
-                      ),
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      onChanged: (val) {
-                        if (val.isNotEmpty && i < 5) {
-                          _focusNodes[i + 1].requestFocus();
-                        } else if (val.isEmpty && i > 0) {
-                          _focusNodes[i - 1].requestFocus();
-                        }
-                        setState(() {});
-                      },
-                    ),
-                  );
-                }),
+              _buildPasswordField(
+                label: 'Kata sandi saat ini',
+                controller: _currentController,
+                visible: _showCurrent,
+                onToggle: () => setState(() => _showCurrent = !_showCurrent),
               ),
               const SizedBox(height: 16),
 
-              Row(
-                children: [
-                  Text(
-                    'Tidak menerima kode? ',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _onResend,
-                    child: const Text(
-                      'Kirim kode baru',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF4AA5A6),
-                        decoration: TextDecoration.underline,
-                        decorationColor: Color(0xFF4AA5A6),
-                      ),
-                    ),
-                  ),
-                ],
+              _buildPasswordField(
+                label: 'Kata sandi baru',
+                controller: _newController,
+                visible: _showNew,
+                onToggle: () => setState(() => _showNew = !_showNew),
+              ),
+              const SizedBox(height: 16),
+
+              _buildPasswordField(
+                label: 'Konfirmasi kata sandi baru',
+                controller: _confirmController,
+                visible: _showConfirm,
+                onToggle: () => setState(() => _showConfirm = !_showConfirm),
               ),
               const SizedBox(height: 32),
 
@@ -218,7 +174,7 @@ class _ChangeEmailOtpPageState extends State<ChangeEmailOtpPage> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: _code.length < 6 || _isLoading ? null : _onLanjutkan,
+                  onPressed: _canSubmit && !_isLoading ? _onSimpan : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4AA5A6),
                     disabledBackgroundColor: const Color(0xFF9ACAD0),
@@ -237,7 +193,7 @@ class _ChangeEmailOtpPageState extends State<ChangeEmailOtpPage> {
                           ),
                         )
                       : const Text(
-                          'Lanjutkan',
+                          'Simpan',
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 15,
@@ -251,6 +207,56 @@ class _ChangeEmailOtpPageState extends State<ChangeEmailOtpPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPasswordField({
+    required String label,
+    required TextEditingController controller,
+    required bool visible,
+    required VoidCallback onToggle,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: TextField(
+            controller: controller,
+            obscureText: !visible,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              suffixIcon: GestureDetector(
+                onTap: onToggle,
+                child: Icon(
+                  visible ? Icons.visibility_off : Icons.visibility,
+                  size: 20,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+            ),
+            style: const TextStyle(fontFamily: 'Inter', fontSize: 14),
+            onChanged: (_) => setState(() {}),
+          ),
+        ),
+      ],
     );
   }
 }
