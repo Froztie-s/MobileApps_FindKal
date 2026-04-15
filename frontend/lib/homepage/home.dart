@@ -320,6 +320,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildHomeContent() {
+    final user = AuthState.currentUser ?? {};
+    final currentUserUsername = user['username'] ?? 'User';
+
     return Stack(
       children: [
         RefreshIndicator(
@@ -412,11 +415,11 @@ class _HomePageState extends State<HomePage> {
                   ),
 
                   // Greeting Placeholder
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Text(
-                      "Selamat datang, User! ⛅",
-                      style: TextStyle(
+                      "Selamat datang, $currentUserUsername! ⛅",
+                      style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
