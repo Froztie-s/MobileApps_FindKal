@@ -992,12 +992,27 @@ class SavedTripPlanView(APIView):
             return url
 
         trips = SavedTripPlan.objects.filter(user_id=user_id)
+
+        # Build a name→(lat, lng) lookup from current Unggahan data
+        coord_lookup: dict = {}
+        for u in Unggahan.objects.filter(
+            latitude__isnull=False, longitude__isnull=False
+        ).values("nama_tempat", "latitude", "longitude"):
+            key = u["nama_tempat"].lower().strip()
+            if key not in coord_lookup:
+                coord_lookup[key] = (u["latitude"], u["longitude"])
+
         data = []
         for t in trips:
-            places = [
-                {**p, "image_url": _rewrite_url(p.get("image_url"))}
-                for p in (t.places or [])
-            ]
+            places = []
+            for p in (t.places or []):
+                enriched = {**p, "image_url": _rewrite_url(p.get("image_url"))}
+                # Fill in missing coordinates from current DB data
+                if enriched.get("latitude") is None or enriched.get("longitude") is None:
+                    key = (enriched.get("title") or "").lower().strip()
+                    if key in coord_lookup:
+                        enriched["latitude"], enriched["longitude"] = coord_lookup[key]
+                places.append(enriched)
             data.append({
                 "id":        t.pk,
                 "name":      t.name,

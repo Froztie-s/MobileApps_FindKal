@@ -10,7 +10,7 @@ class SurveyIntroPage extends StatelessWidget {
     final isVerified = AuthState.isWargaLokal;
     final isLocked = AuthState.isLockedOut;
     final attemptsUsed = AuthState.attemptsUsed;
-    final attemptsRemaining = (3 - attemptsUsed).clamp(0, 3);
+    final attemptsRemaining = (2 - attemptsUsed).clamp(0, 2);
     final region = AuthState.wargaLokalRegion;
 
     String? lockedUntilFormatted;
@@ -148,7 +148,7 @@ Positioned(
 
                 if (!isVerified && !isLocked)
                   Text(
-                    'Estimasi waktu : 3 menit  •  Sisa percobaan: $attemptsRemaining dari 3',
+                    'Estimasi waktu : 3 menit  •  Sisa percobaan: $attemptsRemaining dari 2',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 13,

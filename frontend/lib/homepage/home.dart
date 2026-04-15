@@ -344,6 +344,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildHomeContent() {
+    final user = AuthState.currentUser ?? {};
+    final currentUserUsername = user['username'] ?? 'User';
+
     return Stack(
       children: [
         RefreshIndicator(
@@ -439,7 +442,7 @@ class _HomePageState extends State<HomePage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Text(
-                      "Selamat datang, ${AuthState.currentUser?['username'] ?? 'User'}! ⛅",
+                      "Selamat datang, $currentUserUsername! ⛅",
                       style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 22,
@@ -676,7 +679,7 @@ class _HomePageState extends State<HomePage> {
                       width: 160,
                       height: 200,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, _) => Container(
+                      errorBuilder: (context, error, stack) => Container(
                         width: 160,
                         height: 200,
                         color: Colors.grey.shade300,

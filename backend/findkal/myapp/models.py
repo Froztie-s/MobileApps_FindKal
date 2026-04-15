@@ -231,7 +231,7 @@ class SavedTripPlan(models.Model):
         return f"{self.name} by {self.user.username}"
 
 
-SURVEY_MAX_ATTEMPTS = 3
+SURVEY_MAX_ATTEMPTS = 2
 SURVEY_LOCKOUT_DAYS = 3
 
 
